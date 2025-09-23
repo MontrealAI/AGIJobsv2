@@ -1,0 +1,15 @@
+[profile.default]
+solc_version = "0.8.25"
+src = 'contracts'
+test = 'test'
+libs = ['lib', 'node_modules']
+remappings = ['@openzeppelin/contracts=node_modules/@openzeppelin/contracts']
+via_ir = true
+gas_reports = ['FeePool', 'JobRouter']
+
+[profile.gas]
+src = 'contracts/gas'
+test = 'test/gas'
+libs = ['lib', 'node_modules']
+remappings = ['@openzeppelin/contracts=node_modules/@openzeppelin/contracts']
+via_ir = true
