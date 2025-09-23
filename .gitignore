@@ -15,6 +15,7 @@ scripts/**/*.js
 !scripts/check-coverage.js
 !scripts/verify-wiring.js
 !scripts/run-wire-verify.js
+!scripts/generate-coverage-summary.js
 
 build/
 lib/

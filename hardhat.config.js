@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 require('dotenv').config();
 require('@nomicfoundation/hardhat-toolbox');
 require('hardhat-gas-reporter');
@@ -47,31 +50,42 @@ function resolveAccounts(envKeys) {
 
 const coverageOnly = process.env.COVERAGE_ONLY === '1';
 
-const solidityConfig = coverageOnly
-  ? {
-      version: '0.8.25',
-      settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true },
-    }
-  : {
-      compilers: [
-        {
-          version: '0.8.25',
-          settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true },
-        },
-        {
-          version: '0.8.23',
-          settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true },
-        },
-        {
-          version: '0.8.21',
-          settings: { optimizer: { enabled: true, runs: 200 }, viaIR: true },
-        },
-      ],
-    };
+function createCompiler(version) {
+  return {
+    version,
+    settings: {
+      optimizer: { enabled: true, runs: 200 },
+      viaIR: true,
+    },
+  };
+}
 
-const pathsConfig = coverageOnly
-  ? { sources: './contracts/coverage', tests: './test/coverage' }
-  : { sources: './contracts' };
+const compilers = [
+  createCompiler('0.8.25'),
+  createCompiler('0.8.23'),
+  createCompiler('0.8.21'),
+];
+
+const solidityConfig = { compilers };
+
+function resolveCoveragePaths() {
+  const coverageSourcesDir = path.join(__dirname, 'contracts/coverage');
+  const coverageTestsDir = path.join(__dirname, 'test/coverage');
+
+  const sources = fs.existsSync(coverageSourcesDir)
+    ? './contracts/coverage'
+    : './contracts';
+
+  const paths = { sources };
+
+  if (fs.existsSync(coverageTestsDir)) {
+    paths.tests = './test/coverage';
+  }
+
+  return paths;
+}
+
+const pathsConfig = coverageOnly ? resolveCoveragePaths() : { sources: './contracts' };
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

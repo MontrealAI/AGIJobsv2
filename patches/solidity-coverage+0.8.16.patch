@@ -1,0 +1,25 @@
+diff --git a/node_modules/solidity-coverage/plugins/hardhat.plugin.js b/node_modules/solidity-coverage/plugins/hardhat.plugin.js
+index d612eef..70c6759 100644
+--- a/node_modules/solidity-coverage/plugins/hardhat.plugin.js
++++ b/node_modules/solidity-coverage/plugins/hardhat.plugin.js
+@@ -55,7 +55,19 @@ subtask(TASK_COMPILE_SOLIDITY_GET_COMPILER_INPUT).setAction(async (_, { config }
+ subtask(TASK_COMPILE_SOLIDITY_GET_COMPILATION_JOB_FOR_FILE).setAction(async (_, __, runSuper) => {
+   const compilationJob = await runSuper();
+   if (measureCoverage && typeof compilationJob === "object") {
+-    if (compilationJob.solidityConfig.settings === undefined) {
++    if (
++      compilationJob.solidityConfig === undefined ||
++      compilationJob.solidityConfig === null ||
++      typeof compilationJob.solidityConfig !== "object"
++    ) {
++      compilationJob.solidityConfig = {};
++    }
++
++    if (
++      compilationJob.solidityConfig.settings === undefined ||
++      compilationJob.solidityConfig.settings === null ||
++      typeof compilationJob.solidityConfig.settings !== "object"
++    ) {
+       compilationJob.solidityConfig.settings = {};
+     }
+ 
