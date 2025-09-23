@@ -15,7 +15,12 @@ All other core modules—`StakeManager`, `ValidationModule`, `ReputationEngine`,
 `TaxPolicy` records acknowledgement state per address and exposes `hasAcknowledged(address)` alongside the canonical `policyVersion`. Any update or explicit version bump by the owner requires employers, agents, and validators to call `acknowledgeTaxPolicy` again before interacting, keeping the tax disclaimer evergreen while the platform itself remains tax‑exempt. Modules enforce this requirement with the `requiresTaxAcknowledgement` modifier from [`libraries/TaxAcknowledgement.sol`](../contracts/libraries/TaxAcknowledgement.sol):
 
 ```solidity
-function createJob(uint256 reward, string memory uri)
+function createJob(
+    uint256 reward,
+    uint64 deadline,
+    bytes32 specHash,
+    string memory uri
+)
     external
     requiresTaxAcknowledgement(
         taxPolicy,

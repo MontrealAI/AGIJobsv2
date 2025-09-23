@@ -158,7 +158,11 @@ describe('Kleros dispute module', function () {
     const initialAgentBalance = await token.balanceOf(agent.address);
 
     const reward = ethers.parseUnits('100', AGIALPHA_DECIMALS);
-    await token.connect(employer).approve(await stake.getAddress(), reward);
+    const feePct = await registry.feePct();
+    const fee = (reward * feePct) / 100n;
+    await token
+      .connect(employer)
+      .approve(await stake.getAddress(), reward + fee);
     const deadline = BigInt((await time.latest()) + 3600);
     const specHash = ethers.id('spec');
     await registry

@@ -401,12 +401,12 @@ function commitValidation(uint256 jobId, bytes32 commitHash, string calldata val
 
 ## F. Technical Users — **Deploy v2 via Etherscan (quick sequence)**
 
-1. **Token approvals**: use the `$AGIALPHA` **token** page to `approve(StakeManager, amount)` for employer/agent funding and staking.
+1. **Token approvals**: use the `$AGIALPHA` **token** page to `approve(StakeManager, reward + fee)` for employer funding (fee = `reward * feePct / 100`).
 2. **Stake**: `StakeManager.depositStake(role, amount)`.
-3. **Create job**: `JobRegistry.createJob(reward, uri)` (employer).
+3. **Create job**: `JobRegistry.createJob(reward, deadline, specHash, uri)` (employer) after calling `acknowledgeTaxPolicy()`.
 4. **Agent applies**: `JobRegistry.applyForJob(jobId, "label", proof[])` (reverts without valid `<label>.agent.agi.eth` or allowlist).
 5. **Agent submits**: e.g., `JobRegistry.submitWork(jobId, resultHash)` (function may vary).
-6. **Validators**: `ValidationModule.commitValidation(jobId, commitHash, "label", proof[])` then `revealValidation(jobId, approve, salt)`.
+6. **Validators**: `ValidationModule.commitValidation(jobId, commitHash, "label", proof[])` then `revealValidation(jobId, approve, burnTxHash, salt, "label", proof[])` (acknowledge tax policy first).
 7. **Finalize**: `ValidationModule.finalize(jobId)` to trigger reward, fees, and burning.
 8. **Dispute (optional)**: `JobRegistry.raiseDispute(jobId, evidenceURI)`; operator resolves via `DisputeModule.resolve(...)`.
 
@@ -426,9 +426,9 @@ function commitValidation(uint256 jobId, bytes32 commitHash, string calldata val
    - First go to the **$AGIALPHA token** page → `approve(StakeManager, amount)`.
    - Then back to **StakeManager** → `depositStake(role, amount)` (role: Agent=0, Validator=1).
 
-4. **Create a job (for buyers):** On **JobRegistry** → `createJob(reward, "ipfs://...")`, after approving the StakeManager to pull the reward.
+4. **Create a job (for buyers):** On **JobRegistry** → `acknowledgeTaxPolicy()` then `createJob(reward, deadline, specHash, "ipfs://...")` after approving the StakeManager to pull `reward + fee`.
 5. **Apply to a job (agents):** On **JobRegistry** → `applyForJob(jobId, "yourLabel", [])`. If your ENS is set correctly, it succeeds (you’ll see an event).
-6. **Validate (validators):** On **ValidationModule** → `commitValidation(...)` then `revealValidation(...)` during their respective windows.
+6. **Validate (validators):** On **ValidationModule** → `commitValidation(...)` then `revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)` during the reveal window (call `acknowledgeTaxPolicy()` beforehand).
 7. **Finalize and payouts:** After reveal, the employer calls `finalize(jobId)` to pay the agent, credit validator rewards, send protocol fees to the FeePool, and **burn** the configured portion of fees.
 8. **Dispute (optional):** Use **raiseDispute** if something looks wrong; the operator (or committee) will resolve it on‑chain.
 

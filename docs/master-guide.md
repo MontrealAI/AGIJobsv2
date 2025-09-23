@@ -263,10 +263,12 @@ All amounts are `$AGIALPHA` **wei** (18 decimals). **Always** `approve` the rele
 
 **Goal**: Post a job and fund reward.
 
-1. `$AGIALPHA.approve(spender=StakeManager, amount=reward*(1+fee))`
-2. `JobRegistry.createJob(reward, uri)`
+1. `$AGIALPHA.approve(spender=StakeManager, amount=reward + fee)` where `fee = reward * feePct / 100`
+2. `JobRegistry.createJob(reward, deadline, specHash, uri)`
 
    - `reward`: e.g., `100e18` → `100000000000000000000`
+   - `deadline`: unix timestamp when the job expires (seconds)
+   - `specHash`: keccak256 hash of job metadata (ensure non-zero)
    - `uri`: IPFS/URL to job spec (optionally also include a content hash variant if your version supports it).
 
 3. Note `jobId` from `JobCreated` event/log.
@@ -295,7 +297,7 @@ All amounts are `$AGIALPHA` **wei** (18 decimals). **Always** `approve` the rele
 
 3. **Reveal** (during reveal window):
 
-   - `ValidationModule.revealValidation(jobId, approveBool, salt, subdomain, proof)`
+   - `ValidationModule.revealValidation(jobId, approveBool, burnTxHash, salt, subdomain, proof)`
 
 ### 8.4 Finalize & Payouts
 
@@ -397,7 +399,7 @@ Create `docs/deployment-addresses.json` (or similar) and keep it updated:
 
 **JobRegistry**
 
-- `createJob(reward, uri)`
+- `createJob(reward, deadline, specHash, uri)`
 - `applyForJob(jobId, subdomainLabel, proof[])`
 - `submit(jobId, resultHash, resultURI, subdomainLabel, proof[])` _(name may vary slightly)_
 - `raiseDispute(jobId, evidenceURI)`
@@ -412,7 +414,7 @@ Create `docs/deployment-addresses.json` (or similar) and keep it updated:
 **ValidationModule**
 
 - `commitValidation(jobId, commitHash, subdomainLabel, proof[])`
-- `revealValidation(jobId, approve, salt, subdomain, proof)`
+- `revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)`
 - `finalize(jobId)`
 - Setters: `setJobRegistry(addr)`, `setCommitWindow(sec)`, `setRevealWindow(sec)`, `setIdentityRegistry(addr)`
 
@@ -533,7 +535,7 @@ Create `docs/deployment-addresses.json` (or similar) and keep it updated:
 #### A.2.5 `ValidationModule`
 
 - **Windows (M):** `commitWindow`, `revealWindow`, forced finalize after grace.
-- **Identity enforcement (M):** `commitValidation(jobId,commit,label,proof)` / `revealValidation(jobId,approve,salt)` must enforce ENS/blacklist.
+- **Identity enforcement (M):** `commitValidation(jobId,commit,label,proof)` / `revealValidation(jobId,approve,burnTxHash,salt,label,proof)` must enforce ENS/blacklist.
 - **Penalties (M):** missed reveal, malicious votes → slash via StakeManager; `ValidatorPenalized(validator, jobId, reason, amount)`.
 
 #### A.2.6 `DisputeModule`
@@ -727,7 +729,7 @@ Record each address.
 ### B.5 Sanity checks
 
 - **Stake:** `AGIALPHA.approve(StakeManager, 1e18)` → `StakeManager.depositStake(0, 1e18)`
-- **Post:** `JobRegistry.createJob(1e18, "ipfs://...")`
+- **Post:** `JobRegistry.createJob(1e18, now+3600, keccak256("spec"), "ipfs://...")`
 - **Apply (ENS):** `applyForJob(jobId, "alice", [])` from `alice.agent.agi.eth` owner account
 - **Validate:** commit→reveal
 - **Finalize:** `ValidationModule.finalize(jobId)` → agent paid, fee to FeePool, **burn** on distribution
@@ -755,7 +757,7 @@ Record each address.
 
 ### C.2 Post a job (employer/buyer)
 
-1. **JobRegistry** → `createJob(rewardWei, uri)` (approve StakeManager for `rewardWei` first)
+1. **JobRegistry** → `createJob(rewardWei, deadline, specHash, uri)` (call `acknowledgeTaxPolicy()` and approve StakeManager for `rewardWei + fee` first)
 2. Note `jobId` in `JobCreated`.
 
 ### C.3 Apply to a job (agent)
@@ -771,7 +773,7 @@ Record each address.
 ### C.5 Validate work (validator)
 
 1. **ValidationModule** → `commitValidation(jobId, commitHash, "yourLabel", [])`
-2. After commit window: `revealValidation(jobId, approveBool, salt)`
+2. After commit window: `revealValidation(jobId, approveBool, burnTxHash, salt, "yourLabel", [])`
 3. Watch `ValidatorCommitted/ValidatorRevealed`, then `JobCompleted`.
 
 ### C.6 Finalize (payouts & burns)
@@ -892,9 +894,9 @@ function _ownsEns(bytes32 node, address user) internal view returns (bool) {
 ## Appendix C — Non‑technical quick start
 
 - **Stake:** Token → `approve(StakeManager, AMOUNT)`; StakeManager → `depositStake(role, amountWei)`
-- **Post:** JobRegistry → `createJob(rewardWei, "ipfs://...")`
+- **Post:** JobRegistry → `createJob(rewardWei, deadline, specHash, "ipfs://...")`
 - **Apply (agent):** JobRegistry → `applyForJob(jobId, "label", [])` (ENS required)
-- **Validate:** ValidationModule → `commitValidation(...)` then `revealValidation(...)`
+- **Validate:** ValidationModule → `commitValidation(...)` then `revealValidation(..., burnTxHash, ..., ...)`
 - **Finalize:** ValidationModule → `finalize(jobId)` → payout + fee routing + **burn**
 - **Dispute:** JobRegistry → `raiseDispute` → DisputeModule `resolve` (by operator/moderator)
 - **Claim fees:** FeePool → `claim()` (if platform staking is enabled)

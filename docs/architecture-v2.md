@@ -115,7 +115,12 @@ Key Solidity interfaces live in [`contracts/interfaces`](../contracts/interfaces
 
 ```solidity
 interface IJobRegistry {
-    function createJob(uint256 reward, string calldata uri) external returns (uint256 jobId);
+    function createJob(
+        uint256 reward,
+        uint64 deadline,
+        bytes32 specHash,
+        string calldata uri
+    ) external returns (uint256 jobId);
     function applyForJob(uint256 jobId) external;
     function completeJob(uint256 jobId, bytes calldata result) external;
     function finalize(uint256 jobId) external;
@@ -132,7 +137,14 @@ interface IJobRegistry {
 interface IValidationModule {
     function selectValidators(uint256 jobId) external returns (address[] memory);
     function commitValidation(uint256 jobId, bytes32 commitHash, string calldata subdomain, bytes32[] calldata proof) external;
-    function revealValidation(uint256 jobId, bool approve, bytes32 salt, string calldata subdomain, bytes32[] calldata proof) external;
+    function revealValidation(
+        uint256 jobId,
+        bool approve,
+        bytes32 burnTxHash,
+        bytes32 salt,
+        string calldata subdomain,
+        bytes32[] calldata proof
+    ) external;
     function finalize(uint256 jobId) external returns (bool success);
     function setParameters(
         uint256 validatorStakeRequirement,

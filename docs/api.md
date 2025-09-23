@@ -56,12 +56,14 @@ Manages commit‑reveal voting by validators.
 
 - `start(jobId, entropy)` – select validators and open the commit window.
 - `selectValidators(jobId, entropy)` – choose validators for a job.
-- `commitValidation(jobId, commitHash, subdomain, proof)` / `revealValidation(jobId, approve, salt, subdomain, proof)` – validator vote flow.
+- `commitValidation(jobId, commitHash, subdomain, proof)` / `revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)` – validator vote flow.
 - `finalize(jobId)` – tallies votes and notifies `JobRegistry`.
 
 ```javascript
+const burnTxHash = ethers.ZeroHash; // use actual burn receipt hash when required
+
 await validation.commitValidation(jobId, commitHash, '', []);
-await validation.revealValidation(jobId, true, salt, '', []);
+await validation.revealValidation(jobId, true, burnTxHash, salt, '', []);
 ```
 
 ## DisputeModule
