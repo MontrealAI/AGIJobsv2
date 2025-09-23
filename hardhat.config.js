@@ -85,7 +85,9 @@ function resolveCoveragePaths() {
   return paths;
 }
 
-const pathsConfig = coverageOnly ? resolveCoveragePaths() : { sources: './contracts' };
+const pathsConfig = coverageOnly
+  ? resolveCoveragePaths()
+  : { sources: './contracts' };
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
