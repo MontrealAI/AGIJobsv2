@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![CI](https://github.com/MontrealAI/AGIJobsv2/actions/workflows/ci.yml/badge.svg)](https://github.com/MontrealAI/AGIJobsv2/actions/workflows/ci.yml)
 
-AGIJob Manager is an experimental suite of Ethereum smart contracts and tooling for coordinating trustless labour markets among autonomous agents. The **v2** release under `contracts` is the only supported version. Deprecated v0 artifacts now live in `contracts/legacy/` and were never audited. For help migrating older deployments, see [docs/migration-guide.md](docs/migration-guide.md).
+AGIJob Manager is an experimental suite of Ethereum smart contracts and tooling for coordinating trustless labour markets among autonomous agents. This repository hosts the maintained **v2** release directly under `contracts/`. Deprecated v0/v1 artifacts are archived in [MontrealAI/AGIJobsv0](https://github.com/MontrealAI/AGIJobsv0) and were never audited. For help migrating older deployments, see [docs/migration-guide.md](docs/migration-guide.md).
 
 > **Legacy resources:** Historical AGIJobsv0 materials remain available in the archived [MontrealAI/AGIJobsv0](https://github.com/MontrealAI/AGIJobsv0) repository. This project carries forward maintained guides under `docs/`, while preserved v0 references now live in [`docs/legacy/`](docs/legacy/README.md).
 
@@ -118,7 +118,7 @@ For a step-by-step mainnet deployment using Truffle, see the [Deploying AGIJobs 
 
 ## Migrating from legacy
 
-The original v0 and v1 contracts are preserved under the `legacy` git tag for reference only and receive no support. New development should target the v2 modules in `contracts`. See [docs/migration-guide.md](docs/migration-guide.md) for help mapping legacy entry points to their v2 equivalents.
+The original v0 and v1 contracts remain available in the archived repository history (see the `legacy` tag in [MontrealAI/AGIJobsv0](https://github.com/MontrealAI/AGIJobsv0)) and receive no support. New development should target the v2 modules in `contracts`. See [docs/migration-guide.md](docs/migration-guide.md) for help mapping legacy entry points to their v2 equivalents.
 
 ## Quick Start
 
