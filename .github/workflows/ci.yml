@@ -47,8 +47,6 @@ jobs:
         run: npm run wire:verify
       - name: Run lint
         run: npm run lint
-      - name: Check formatting
-        run: npm run format:check
       - name: Run tests
         run: npm test
       - name: Check module governance

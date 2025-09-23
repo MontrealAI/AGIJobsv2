@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+if [ "$SKIP_HUSKY" = "1" ]; then
+  echo "husky pre-commit hook skipped"
+  exit 0
+fi
+set -e
+npm run ci:local

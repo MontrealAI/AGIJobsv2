@@ -4,13 +4,13 @@ import { ethers } from 'ethers';
 import { loadTokenConfig, inferNetworkKey } from './config';
 
 const { path: defaultConfigPath } = loadTokenConfig();
-const defaultConstantsPath = path.join(
-  __dirname,
-  '..',
-  'contracts',
-  'v2',
-  'Constants.sol'
-);
+const defaultConstantsCandidates = [
+  path.join(__dirname, '..', 'contracts', 'Constants.sol'),
+  path.join(__dirname, '..', 'contracts', 'v2', 'Constants.sol'),
+];
+const defaultConstantsPath =
+  defaultConstantsCandidates.find((candidate) => fs.existsSync(candidate)) ??
+  defaultConstantsCandidates[0];
 
 type TokenConfig = {
   address: string;

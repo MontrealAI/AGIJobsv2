@@ -25,6 +25,7 @@ All modules now assume the 18‑decimal `$AGIALPHA` token for payments, stakes a
 - [Mainnet Deployment](#mainnet-deployment)
 - [Migrating from legacy](#migrating-from-legacy)
 - [Quick Start](#quick-start)
+- [Continuous Integration](#continuous-integration)
 - [Deployed Addresses](#deployed-addresses)
 - [Step‑by‑Step Deployment with $AGIALPHA](#step-by-step-deployment-with-agialpha)
 - [Agent/Validator Identity – ENS subdomain registration](#agentvalidator-identity--ens-subdomain-registration)
@@ -153,6 +154,18 @@ node -e "require('./examples/ethers-quickstart').validate(1, '0xhash', '0xlabel'
 ```bash
 node -e "require('./examples/ethers-quickstart').dispute(1, 'ipfs://evidence')"
 ```
+
+## Continuous Integration
+
+- **Run the local pipeline:** `npm run ci:local`
+- **What it covers:**
+  - Regenerates on-chain constants and fails if [`contracts/Constants.sol`](contracts/Constants.sol) is out of sync.
+  - Verifies the canonical `$AGIALPHA` configuration via [`scripts/verify-agialpha.ts`](scripts/verify-agialpha.ts).
+  - Executes module wiring checks with the same mainnet fork defaults used in CI.
+  - Lints Solidity, JavaScript and TypeScript sources and runs the Hardhat unit test suite.
+- **Why it matters:** the command mirrors the critical `build` job from [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Husky installs a pre-commit hook that invokes `npm run ci:local`, ensuring every commit is validated with the full developer-facing CI gate before it reaches GitHub.
+
+If you need to iterate quickly on a long-running task, use `SKIP_HUSKY=1 git commit ...` to bypass the hook temporarily, then re-run `npm run ci:local` manually before pushing.
 
 ## Deployed Addresses
 
