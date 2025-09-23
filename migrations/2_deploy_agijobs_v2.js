@@ -13,6 +13,13 @@ const {
 } = require('../scripts/config');
 
 const Deployer = artifacts.require('Deployer');
+const StakeManager = artifacts.require('StakeManager');
+const JobRegistry = artifacts.require('JobRegistry');
+const DisputeModule = artifacts.require('DisputeModule');
+const PlatformRegistry = artifacts.require('PlatformRegistry');
+const JobRouter = artifacts.require('JobRouter');
+const PlatformIncentives = artifacts.require('PlatformIncentives');
+const SystemPause = artifacts.require('SystemPause');
 
 const UINT96_MAX = (1n << 96n) - 1n;
 const ZERO_ADDRESS = ethers.ZeroAddress;
@@ -34,6 +41,13 @@ function ensureAddress(value, label, { allowZero = false } = {}) {
     throw new Error(`${label} cannot be the zero address`);
   }
   return address;
+}
+
+function sameAddress(a, b) {
+  if (!a || !b) {
+    return false;
+  }
+  return ethers.getAddress(a) === ethers.getAddress(b);
 }
 
 function pickDefined(...candidates) {
@@ -244,12 +258,21 @@ module.exports = async function (deployer, currentNetwork, accounts) {
     throw new Error('Deployed event not found in receipt');
   }
 
+  const disputeInstance = await DisputeModule.at(log.args.disputeModule);
+  const arbitratorCommitteeAddress = await disputeInstance.committee();
+  if (arbitratorCommitteeAddress === ZERO_ADDRESS) {
+    throw new Error(
+      'Arbitrator committee was not configured during deployment'
+    );
+  }
+
   const deployedAddresses = {
     stakeManager: log.args.stakeManager,
     jobRegistry: log.args.jobRegistry,
     validationModule: log.args.validationModule,
     reputationEngine: log.args.reputationEngine,
     disputeModule: log.args.disputeModule,
+    arbitratorCommittee: arbitratorCommitteeAddress,
     certificateNFT: log.args.certificateNFT,
     platformRegistry: log.args.platformRegistry,
     jobRouter: log.args.jobRouter,
@@ -266,6 +289,7 @@ module.exports = async function (deployer, currentNetwork, accounts) {
     validationModule,
     reputationEngine,
     disputeModule,
+    arbitratorCommittee,
     certificateNFT,
     platformRegistry,
     jobRouter,
@@ -276,12 +300,105 @@ module.exports = async function (deployer, currentNetwork, accounts) {
     systemPause,
   } = deployedAddresses;
 
+  const stakeManagerInstance = await StakeManager.at(stakeManager);
+  const jobRegistryInstance = await JobRegistry.at(jobRegistry);
+  const platformRegistryInstance = await PlatformRegistry.at(platformRegistry);
+  const jobRouterInstance = await JobRouter.at(jobRouter);
+  const platformIncentivesInstance = await PlatformIncentives.at(
+    platformIncentives
+  );
+  const systemPauseInstance = await SystemPause.at(systemPause);
+
+  const governanceAccount = accounts.find((acct) =>
+    sameAddress(acct, governance)
+  );
+  if (!governanceAccount) {
+    console.warn(
+      `Governance address ${governance} is not available in the local signer set; governance-owned wiring calls will be skipped.`
+    );
+  }
+
+  const registryHasIncentives = await platformRegistryInstance.registrars(
+    platformIncentives
+  );
+  if (!registryHasIncentives) {
+    throw new Error(
+      'PlatformIncentives is not registered with PlatformRegistry; ensure registrar wiring is executed.'
+    );
+  }
+
+  const routerHasIncentives = await jobRouterInstance.registrars(
+    platformIncentives
+  );
+  if (!routerHasIncentives) {
+    throw new Error(
+      'PlatformIncentives is not registered with JobRouter; ensure registrar wiring is executed.'
+    );
+  }
+
+  const stakeRegistry = await stakeManagerInstance.jobRegistry();
+  const stakeDispute = await stakeManagerInstance.disputeModule();
+  if (
+    !sameAddress(stakeRegistry, jobRegistry) ||
+    !sameAddress(stakeDispute, disputeModule)
+  ) {
+    throw new Error(
+      'StakeManager modules are not wired to the deployed registry/dispute module'
+    );
+  }
+
+  const stakeOwner = await stakeManagerInstance.owner();
+  if (!sameAddress(stakeOwner, systemPause)) {
+    throw new Error(
+      'StakeManager governance was not transferred to SystemPause'
+    );
+  }
+
+  const registryOwner = await jobRegistryInstance.owner();
+  if (!sameAddress(registryOwner, systemPause)) {
+    throw new Error(
+      'JobRegistry governance was not transferred to SystemPause'
+    );
+  }
+
+  if (governanceAccount) {
+    const incentivesStake = await platformIncentivesInstance.stakeManager();
+    const incentivesRegistry =
+      await platformIncentivesInstance.platformRegistry();
+    const incentivesRouter = await platformIncentivesInstance.jobRouter();
+    if (
+      !sameAddress(incentivesStake, stakeManager) ||
+      !sameAddress(incentivesRegistry, platformRegistry) ||
+      !sameAddress(incentivesRouter, jobRouter)
+    ) {
+      await platformIncentivesInstance.setModules(
+        stakeManager,
+        platformRegistry,
+        jobRouter,
+        { from: governanceAccount }
+      );
+    }
+
+    await systemPauseInstance.setModules(
+      jobRegistry,
+      stakeManager,
+      validationModule,
+      disputeModule,
+      platformRegistry,
+      feePool,
+      reputationEngine,
+      arbitratorCommittee,
+      { from: governanceAccount }
+    );
+  }
+
   console.log('Deployer:', instance.address);
   console.log('StakeManager:', stakeManager);
   console.log('JobRegistry:', jobRegistry);
   console.log('ValidationModule:', validationModule);
   console.log('ReputationEngine:', reputationEngine);
   console.log('DisputeModule:', disputeModule);
+  console.log('ArbitratorCommittee:', arbitratorCommittee);
   console.log('CertificateNFT:', certificateNFT);
   console.log('PlatformRegistry:', platformRegistry);
   console.log('JobRouter:', jobRouter);
@@ -307,6 +424,7 @@ module.exports = async function (deployer, currentNetwork, accounts) {
       'PlatformRegistry',
       'JobRouter',
       'PlatformIncentives',
+      'ArbitratorCommittee',
       'FeePool',
       'IdentityRegistry',
       'SystemPause',
