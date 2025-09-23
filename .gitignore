@@ -18,6 +18,9 @@ scripts/**/*.js
 !scripts/generate-coverage-summary.js
 
 build/
-lib/
+# Foundry libraries (keep forge-std vendored for CI)
+lib/*
+!lib/forge-std/
+!lib/forge-std/**
 agent-gateway/dist/
 examples/agentic/runtime-agentic.jsonl
