@@ -36,7 +36,11 @@
     "namehash:sepolia": "node scripts/compute-namehash.js deployment-config/sepolia.json",
     "deploy:protocol": "npx hardhat run scripts/deploy/providerAgnosticDeploy.ts",
     "migrate:mainnet": "TRUFFLE_NETWORK=mainnet npm run compile:mainnet && npx truffle migrate --network mainnet --reset && TRUFFLE_NETWORK=mainnet npm run wire:verify",
-    "migrate:sepolia": "DEPLOY_LOCAL_ERC20=1 TRUFFLE_NETWORK=sepolia npm run compile:sepolia && npx truffle migrate --network sepolia --reset && TRUFFLE_NETWORK=sepolia npm run wire:verify"
+    "migrate:sepolia": "DEPLOY_LOCAL_ERC20=1 TRUFFLE_NETWORK=sepolia npm run compile:sepolia && npx truffle migrate --network sepolia --reset && TRUFFLE_NETWORK=sepolia npm run wire:verify",
+    "truffle:ganache": "ganache -d -p 8545 --chain.hardfork shanghai --chain.allowUnlimitedContractSize true --miner.blockGasLimit 0x1fffffffffffff",
+    "truffle:migrate:dev": "npx truffle migrate --reset --network development",
+    "truffle:test": "npx truffle test --network development",
+    "truffle:verify:mainnet": "npx truffle run verify StakeManager ReputationEngine IdentityRegistry ValidationModule DisputeModule CertificateNFT JobRegistry FeePool --network mainnet"
   },
   "keywords": [],
   "author": "",
@@ -54,6 +58,7 @@
     "dotenv": "^17.2.2",
     "eslint": "^9.32.0",
     "eslint-plugin-prettier": "^4.2.5",
+    "ganache": "^7.9.1",
     "hardhat": "^2.26.1",
     "hardhat-gas-reporter": "^2.3.0",
     "husky": "^9.1.6",
@@ -62,6 +67,8 @@
     "solhint": "^6.0.0",
     "solidity-coverage": "^0.8.14",
     "supertest": "^7.1.4",
+    "truffle": "^5.11.5",
+    "truffle-plugin-verify": "^0.6.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   },
