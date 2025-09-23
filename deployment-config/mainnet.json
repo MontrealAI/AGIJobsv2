@@ -1,0 +1,53 @@
+{
+  "governance": {
+    "initial": "0x0000000000000000000000000000000000000000",
+    "final": "0x0000000000000000000000000000000000000000"
+  },
+  "stakeManager": {
+    "minStakeTokens": "10",
+    "employerSlashPct": 50,
+    "treasurySlashPct": 50,
+    "treasury": "0x0000000000000000000000000000000000000000"
+  },
+  "validation": {
+    "commitWindow": 3600,
+    "revealWindow": 3600,
+    "minValidators": 3,
+    "maxValidators": 5,
+    "validatorsPerJob": 3,
+    "validatorPool": []
+  },
+  "dispute": {
+    "feeTokens": "1",
+    "window": 86400,
+    "committee": "0x0000000000000000000000000000000000000000"
+  },
+  "feePool": {
+    "burnPct": 5,
+    "treasury": "0x0000000000000000000000000000000000000000"
+  },
+  "jobRegistry": {
+    "feePct": 5,
+    "jobStakeTokens": "1",
+    "treasury": "0x0000000000000000000000000000000000000000",
+    "ackModules": []
+  },
+  "identity": {
+    "ens": "0x0000000000000000000000000000000000000000",
+    "nameWrapper": "0x0000000000000000000000000000000000000000",
+    "agentRootNode": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "clubRootNode": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "agentMerkleRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "validatorMerkleRoot": "0x0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "certificate": {
+    "name": "AGI Certificate",
+    "symbol": "AGICERT",
+    "baseURI": ""
+  },
+  "taxPolicy": {
+    "deploy": true,
+    "uri": "ipfs://placeholder",
+    "ack": "Employers, agents, and validators accept all tax responsibility."
+  }
+}
