@@ -13,13 +13,20 @@ Employers escrow the reward and publish job metadata.
 ```javascript
 // post-job.js
 const token = await ethers.getContractAt('AGIALPHAToken', tokenAddress);
-const stake = await ethers.getContractAt('StakeManager', stakeAddress);
 const registry = await ethers.getContractAt('JobRegistry', registryAddress);
+const stakeAddress = await registry.stakeManager();
 
 const reward = ethers.parseUnits('10', 18);
-await token.approve(stakeAddress, reward);
-await stake.depositStake(0, reward); // escrow for job
-const tx = await registry.createJob(reward, 'ipfs://job.json');
+const feePct = await registry.feePct();
+const fee = (reward * BigInt(feePct)) / 100n;
+const total = reward + fee;
+const deadline = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+const specHash = ethers.id('job-spec-json');
+
+await registry.acknowledgeTaxPolicy();
+await token.approve(stakeAddress, total);
+
+const tx = await registry.createJob(reward, deadline, specHash, 'ipfs://job.json');
 const receipt = await tx.wait();
 console.log(`Job ID: ${receipt.logs[0].args.jobId}`);
 ```
@@ -45,11 +52,15 @@ const validation = await ethers.getContractAt(
   validationAddress
 );
 
+const burnTxHash = ethers.ZeroHash; // replace with actual burn receipt hash when required
+
+await registry.acknowledgeTaxPolicy();
+
 // Commit phase
 await validation.commitValidation(jobId, commitHash, 'alice', []); // alice.club.agi.eth
 
 // Reveal phase
-await validation.revealValidation(jobId, true, salt, 'alice', []);
+await validation.revealValidation(jobId, true, burnTxHash, salt, 'alice', []);
 ```
 
 ## 4. Finalize

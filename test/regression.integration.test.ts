@@ -139,7 +139,11 @@ describe('regression scenarios', function () {
     await validation.setValidatorsPerJob(1);
 
     const reward = ethers.parseUnits('10', AGIALPHA_DECIMALS);
-    await token.connect(employer).approve(await stake.getAddress(), reward);
+    const feePct = await registry.feePct();
+    const fee = (reward * feePct) / 100n;
+    await token
+      .connect(employer)
+      .approve(await stake.getAddress(), reward + fee);
     const deadline = BigInt((await time.latest()) + 3600);
     const specHash = ethers.id('spec');
     await registry
@@ -169,7 +173,11 @@ describe('regression scenarios', function () {
     await validation.setValidatorSlashingPct(100);
 
     const reward = ethers.parseUnits('10', AGIALPHA_DECIMALS);
-    await token.connect(employer).approve(await stake.getAddress(), reward);
+    const feePct = await registry.feePct();
+    const fee = (reward * feePct) / 100n;
+    await token
+      .connect(employer)
+      .approve(await stake.getAddress(), reward + fee);
     const deadline1 = BigInt((await time.latest()) + 3600);
     const specHash = ethers.id('spec');
     await registry
@@ -200,6 +208,9 @@ describe('regression scenarios', function () {
     await registry.connect(employer).finalize(1);
 
     const deadline2 = BigInt((await time.latest()) + 3600);
+    await token
+      .connect(employer)
+      .approve(await stake.getAddress(), reward + fee);
     await registry
       .connect(employer)
       .createJob(reward, deadline2, specHash, 'ipfs://job2');
@@ -253,7 +264,11 @@ describe('regression scenarios', function () {
     }
 
     const reward = ethers.parseUnits('10', AGIALPHA_DECIMALS);
-    await token.connect(employer).approve(await stake.getAddress(), reward);
+    const feePct = await registry.feePct();
+    const fee = (reward * feePct) / 100n;
+    await token
+      .connect(employer)
+      .approve(await stake.getAddress(), reward + fee);
     const deadline = BigInt((await time.latest()) + 3600);
     const specHash = ethers.id('spec');
     await registry

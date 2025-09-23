@@ -17,6 +17,7 @@ def post_job():
     reward = Web3.to_wei(1, "ether")  # 1 token in 18‑decimal units
     deadline = int(time.time()) + 3600
     spec_hash = Web3.keccak(text="spec")
+    registry.functions.acknowledgeTaxPolicy().transact({"from": account.address})
     tx = registry.functions.createJob(reward, deadline, spec_hash, "ipfs://job").build_transaction({
         "from": account.address,
         "nonce": w3.eth.get_transaction_count(account.address)
@@ -35,7 +36,7 @@ def apply(job_id, subdomain, proof):
     w3.eth.send_raw_transaction(signed.rawTransaction)
 
 
-def commit_and_reveal(job_id, commit_hash, subdomain, proof, approve, salt):
+def commit_and_reveal(job_id, commit_hash, subdomain, proof, approve, salt, burn_tx_hash=b"\x00" * 32):
     """Validators pass their `.club.agi.eth` label as `subdomain`."""
     tx = validation.functions.commitValidation(job_id, commit_hash, subdomain, proof).build_transaction({
         "from": account.address,
@@ -44,7 +45,7 @@ def commit_and_reveal(job_id, commit_hash, subdomain, proof, approve, salt):
     signed = account.sign_transaction(tx)
     w3.eth.send_raw_transaction(signed.rawTransaction)
 
-    tx2 = validation.functions.revealValidation(job_id, approve, salt, subdomain, proof).build_transaction({
+    tx2 = validation.functions.revealValidation(job_id, approve, burn_tx_hash, salt, subdomain, proof).build_transaction({
         "from": account.address,
         "nonce": w3.eth.get_transaction_count(account.address)
     })

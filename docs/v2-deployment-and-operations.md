@@ -110,8 +110,8 @@ then be performed through the "Write" tabs on each module.
 
 ### Job Creation
 
-1. Approve the job reward on the staking token.
-2. In `JobRegistry` → **Write**, call `createJob(reward, uri)`.
+1. Approve `reward + fee` on the staking token (fee = `reward * feePct / 100`).
+2. In `JobRegistry` → **Write**, call `createJob(reward, deadline, specHash, uri)`.
 3. Watch for `JobCreated(jobId, employer, reward)` in the log.
 
 ### Staking
@@ -138,7 +138,7 @@ then be performed through the "Write" tabs on each module.
 1. During commit phase, validators call
    `ValidationModule.commitValidation(jobId, commitHash, subdomain, proof)`.
 2. During reveal phase, call
-   `revealValidation(jobId, approve, salt, subdomain, proof)`.
+   `revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)`.
 3. After reveal, anyone may call `ValidationModule.finalize(jobId)` to record the outcome.
 4. The employer then settles the job by calling `JobRegistry.acknowledgeAndFinalize(jobId)` from their own wallet, which releases funds and burns the fee share.
 
@@ -162,9 +162,9 @@ then be performed through the "Write" tabs on each module.
 | ---------------- | ------------------------------------------------------------------ | ----------------------------------------------- |
 | Accept tax terms | `JobRegistry.acknowledgeTaxPolicy()`                               | Must be called once before staking or disputing |
 | Stake as agent   | `StakeManager.depositStake(0, amount)`                             | `amount` uses 18‑decimal `$AGIALPHA` units      |
-| Post a job       | `JobRegistry.createJob(reward, uri)`                               | `reward` in base units; token must be approved  |
+| Post a job       | `JobRegistry.createJob(reward, deadline, specHash, uri)`           | Approve `reward + fee` in base units first      |
 | Commit vote      | `ValidationModule.commitValidation(jobId, hash, subdomain, proof)` | `hash = keccak256(approve, salt)`               |
-| Reveal vote      | `ValidationModule.revealValidation(jobId, approve, salt)`          | Call after commit phase closes                  |
+| Reveal vote      | `ValidationModule.revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)` | Call after commit phase closes                  |
 | Raise dispute    | `JobRegistry.raiseDispute(jobId, evidence)`                        | Requires prior fee approval                     |
 | List certificate | `CertificateNFT.list(tokenId, price)`                              | Price in base units                             |
 | Buy certificate  | `CertificateNFT.purchase(tokenId)`                                 | Buyer approves token first                      |
@@ -275,11 +275,11 @@ To generate proofs:
 
 | Function                                                                                         | Module             | Purpose                         |
 | ------------------------------------------------------------------------------------------------ | ------------------ | ------------------------------- |
-| `createJob(uint256 reward, string uri)`                                                          | `JobRegistry`      | Post a job and lock payout.     |
+| Post a job       | `JobRegistry.createJob(reward, deadline, specHash, uri)`           | Approve `reward + fee` in base units first      |
 | `depositStake(uint8 role, uint256 amount)`                                                       | `StakeManager`     | Bond tokens for a role.         |
 | `applyForJob(uint256 jobId, string subdomain, bytes32[] proof)`                                  | `JobRegistry`      | Enter candidate pool for a job. |
 | `commitValidation(uint256 jobId, bytes32 hash, string subdomain, bytes32[] proof)`               | `ValidationModule` | Submit a hidden vote.           |
-| `revealValidation(uint256 jobId, bool approve, bytes32 salt, string subdomain, bytes32[] proof)` | `ValidationModule` | Reveal vote.                    |
+| Reveal vote      | `ValidationModule.revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)` | Call after commit phase closes                  |
 | `raiseDispute(uint256 jobId, string reason)`                                                     | `JobRegistry`      | Start appeal process.           |
 | `list(uint256 tokenId, uint256 price)`                                                           | `CertificateNFT`   | List job certificate for sale.  |
 | `purchase(uint256 tokenId)`                                                                      | `CertificateNFT`   | Buy listed certificate.         |

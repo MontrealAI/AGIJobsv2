@@ -11,7 +11,7 @@ for issuing and verifying names.
 | -------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Awaiting | `JobRegistry.ResultSubmitted` → `ValidationAwaiting` broadcast to the domain agent.    | — (agent inspects submission, optional heuristics).    |
 | Commit   | Stake checked, ENS identity verified, commit hash computed with `jobNonce`.        | `commitValidation(jobId, commitHash, subdomain, proof)`|
-| Reveal   | Reveal scheduled from `validation.rounds(jobId)` once commit window closes.         | `revealValidation(jobId, approve, salt, subdomain, proof)`|
+| Reveal   | Reveal scheduled from `validation.rounds(jobId)` once commit window closes.         | `revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)`|
 | Finalize | Gateway (or anyone) calls `ValidationModule.finalize`. Employer finalises registry. | `ValidationModule.finalize(jobId)` then `JobRegistry.finalize(jobId)` |
 
 `commitWindow` and `revealWindow` are owner‑configurable via
@@ -91,7 +91,7 @@ the salt under `storage/validation/`, and later reuses that salt for the reveal.
 cast send $VALIDATION_MODULE "commitValidation(uint256,bytes32,string,bytes32[])" $JOB_ID 0xCOMMIT '' [] --from $VALIDATOR
 
 # Reveal after the commit window
-cast send $VALIDATION_MODULE "revealValidation(uint256,bool,bytes32,string,bytes32[])" $JOB_ID true 0xSALT '' [] --from $VALIDATOR
+cast send $VALIDATION_MODULE "revealValidation(uint256,bool,bytes32,bytes32,string,bytes32[])" $JOB_ID true $BURN_HASH 0xSALT '' [] --from $VALIDATOR
 
 # Finalize after the reveal window
 cast send $VALIDATION_MODULE "finalize(uint256)" $JOB_ID --from $ANYONE

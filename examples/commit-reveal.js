@@ -2,8 +2,8 @@
  * Commit and reveal validation votes while persisting the salt locally.
  *
  * Usage:
- *   node examples/commit-reveal.js commit <jobId> <approve> [salt] [subdomain]
- *   node examples/commit-reveal.js reveal <jobId> [approve] [salt] [subdomain]
+ *   node examples/commit-reveal.js commit <jobId> <approve> [salt] [subdomain] [burnTxHash] [proofJson]
+ *   node examples/commit-reveal.js reveal <jobId> [approve] [salt] [subdomain] [burnTxHash] [proofJson]
  *
  * Environment:
  *   RPC_URL, PRIVATE_KEY, VALIDATION_MODULE
@@ -26,9 +26,16 @@ const provider = new ethers.JsonRpcProvider(
 const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 const validationAbi = [
+  'function DOMAIN_SEPARATOR() view returns (bytes32)',
+  'function jobRegistry() view returns (address)',
   'function jobNonce(uint256) view returns (uint256)',
   'function commitValidation(uint256,bytes32,string,bytes32[])',
-  'function revealValidation(uint256,bool,bytes32,string,bytes32[])',
+  'function revealValidation(uint256,bool,bytes32,bytes32,string,bytes32[])',
+];
+
+const registryAbi = [
+  'function acknowledgeTaxPolicy() returns (string)',
+  'function getSpecHash(uint256) view returns (bytes32)',
 ];
 
 const validation = new ethers.Contract(
@@ -36,6 +43,15 @@ const validation = new ethers.Contract(
   validationAbi,
   wallet
 );
+
+let cachedRegistry;
+async function getRegistry() {
+  if (!cachedRegistry) {
+    const registryAddr = await validation.jobRegistry();
+    cachedRegistry = new ethers.Contract(registryAddr, registryAbi, wallet);
+  }
+  return cachedRegistry;
+}
 
 const STORAGE_ROOT = path.resolve(__dirname, '../storage/validation');
 
@@ -80,24 +96,81 @@ function isHexSalt(value) {
   return typeof value === 'string' && /^0x?[0-9a-fA-F]{64}$/.test(value.trim());
 }
 
-function normaliseSalt(value) {
+function normaliseBytes32(value, label) {
+  if (!value) return ethers.ZeroHash;
   const candidate = value.startsWith('0x') ? value : `0x${value}`;
   const bytes = ethers.getBytes(candidate);
   if (bytes.length !== 32) {
-    throw new Error('salt must be 32 bytes');
+    throw new Error(`${label} must be 32 bytes`);
   }
   return ethers.hexlify(bytes);
 }
 
-async function commit(jobId, approve, saltArg, subdomain, proof) {
-  const nonce = await validation.jobNonce(jobId);
-  const salt = saltArg
-    ? normaliseSalt(saltArg)
+function normaliseSalt(value) {
+  return value
+    ? normaliseBytes32(value, 'salt')
     : ethers.hexlify(ethers.randomBytes(32));
-  const commitHash = ethers.solidityPackedKeccak256(
-    ['uint256', 'uint256', 'bool', 'bytes32'],
-    [ethers.getBigInt(jobId), ethers.getBigInt(nonce), approve, salt]
+}
+
+function parseProofArg(arg) {
+  if (!arg) return [];
+  try {
+    const parsed = JSON.parse(arg);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((entry) => normaliseBytes32(entry, 'proof entry'))
+        .filter(Boolean);
+    }
+  } catch (err) {
+    // fallthrough to plain parsing
+  }
+  const cleaned = String(arg).trim();
+  if (!cleaned || cleaned === '[]' || cleaned === '0x') {
+    return [];
+  }
+  return cleaned
+    .replace(/^[\[\{\s]+|[\]\}\s]+$/g, '')
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((entry) => normaliseBytes32(entry, 'proof entry'));
+}
+
+async function ensureAcknowledged(registry) {
+  try {
+    await registry.acknowledgeTaxPolicy();
+  } catch (err) {
+    console.warn('acknowledgeTaxPolicy failed:', err.message || err);
+  }
+}
+
+async function buildCommitHash(jobId, approve, burnTxHash, salt) {
+  const [nonce, domain, network, registry] = await Promise.all([
+    validation.jobNonce(jobId),
+    validation.DOMAIN_SEPARATOR(),
+    provider.getNetwork(),
+    getRegistry(),
+  ]);
+  const specHash = await registry.getSpecHash(jobId);
+  const abi = ethers.AbiCoder.defaultAbiCoder();
+  const outcomeHash = ethers.keccak256(
+    abi.encode(
+      ['uint256', 'bytes32', 'bool', 'bytes32'],
+      [nonce, specHash, approve, burnTxHash]
+    )
   );
+  return ethers.keccak256(
+    abi.encode(
+      ['uint256', 'bytes32', 'bytes32', 'address', 'uint256', 'bytes32'],
+      [jobId, outcomeHash, salt, wallet.address, network.chainId, domain]
+    )
+  );
+}
+
+async function commit(jobId, approve, burnTxHash, saltArg, subdomain, proof) {
+  const registry = await getRegistry();
+  await ensureAcknowledged(registry);
+  const salt = normaliseSalt(saltArg);
+  const commitHash = await buildCommitHash(jobId, approve, burnTxHash, salt);
   const tx = await validation.commitValidation(
     jobId,
     commitHash,
@@ -109,17 +182,27 @@ async function commit(jobId, approve, saltArg, subdomain, proof) {
     jobId: jobId.toString(),
     validator: wallet.address,
     approve,
+    burnTxHash,
     salt,
+    subdomain,
+    proof,
     commitHash,
     commitTx: tx.hash,
     committedAt: new Date().toISOString(),
   });
   console.log('Committed validation', tx.hash);
-  console.log('Stored salt at', storagePath(jobId, wallet.address));
+  console.log('Stored state at', storagePath(jobId, wallet.address));
   console.log('Record:', record);
 }
 
-async function reveal(jobId, approveArg, saltArg, subdomain, proof) {
+async function reveal(
+  jobId,
+  approveArg,
+  saltArg,
+  subdomainArg,
+  burnArg,
+  proofArg
+) {
   const record = loadRecord(jobId, wallet.address);
   const approve = typeof approveArg === 'boolean' ? approveArg : record.approve;
   if (typeof approve !== 'boolean') {
@@ -129,10 +212,22 @@ async function reveal(jobId, approveArg, saltArg, subdomain, proof) {
   if (!saltSource) {
     throw new Error('Salt missing. Provide it or ensure commit record exists.');
   }
+  const burnTxHash = normaliseBytes32(
+    burnArg || record.burnTxHash,
+    'burnTxHash'
+  );
   const salt = normaliseSalt(saltSource);
+  const subdomain =
+    typeof subdomainArg === 'string' && subdomainArg.length > 0
+      ? subdomainArg
+      : record.subdomain || '';
+  const proof = proofArg ? parseProofArg(proofArg) : record.proof || [];
+  const registry = await getRegistry();
+  await ensureAcknowledged(registry);
   const tx = await validation.revealValidation(
     jobId,
     approve,
+    burnTxHash,
     salt,
     subdomain,
     proof
@@ -140,7 +235,10 @@ async function reveal(jobId, approveArg, saltArg, subdomain, proof) {
   await tx.wait();
   const updated = saveRecord(jobId, wallet.address, {
     approve,
+    burnTxHash,
     salt,
+    subdomain,
+    proof,
     revealTx: tx.hash,
     revealedAt: new Date().toISOString(),
   });
@@ -149,28 +247,32 @@ async function reveal(jobId, approveArg, saltArg, subdomain, proof) {
 }
 
 async function main() {
-  const [action, jobIdArg, approveArg, arg4, arg5] = process.argv.slice(2);
+  const [action, jobIdArg, approveArg, ...rest] = process.argv.slice(2);
   if (!action || !jobIdArg) {
     console.error(
-      'Usage: node examples/commit-reveal.js commit|reveal jobId approve [salt] [subdomain]'
+      'Usage: node examples/commit-reveal.js commit|reveal jobId approve [salt] [subdomain] [burnTxHash] [proofJson]'
     );
     process.exit(1);
   }
-  const jobId = BigInt(jobIdArg);
+  const jobId = ethers.getBigInt(jobIdArg);
   const approveValue =
     typeof approveArg === 'undefined' ? undefined : approveArg === 'true';
-  const proof = [];
+  const saltCandidate = rest[0];
+  const hasSalt = isHexSalt(saltCandidate);
+  const subdomain = hasSalt ? rest[1] || '' : saltCandidate || '';
+  const burnArg = hasSalt ? rest[2] : rest[1];
+  const proofArg = hasSalt ? rest[3] : rest[2];
+  const saltInput = hasSalt ? saltCandidate : undefined;
+  const burnTxHash = normaliseBytes32(burnArg, 'burnTxHash');
+  const proof = parseProofArg(proofArg);
+
   if (action === 'commit') {
     if (approveValue === undefined) {
       throw new Error('Approve flag required for commit');
     }
-    const saltInput = isHexSalt(arg4) ? arg4 : undefined;
-    const subdomain = isHexSalt(arg4) ? arg5 || '' : arg4 || '';
-    await commit(jobId, approveValue, saltInput, subdomain, proof);
+    await commit(jobId, approveValue, burnTxHash, saltInput, subdomain, proof);
   } else if (action === 'reveal') {
-    const saltInput = isHexSalt(arg4) ? arg4 : undefined;
-    const subdomain = isHexSalt(arg4) ? arg5 || '' : arg4 || '';
-    await reveal(jobId, approveValue, saltInput, subdomain, proof);
+    await reveal(jobId, approveValue, saltInput, subdomain, burnArg, proofArg);
   } else {
     console.error('Unknown action', action);
     process.exit(1);

@@ -19,12 +19,12 @@ For a narrated deployment walkthrough, see [deployment-v2-agialpha.md](deploymen
 
 ## Role Function Quick Reference
 
-| Role      | Required function calls                                                                                                                                                                                                                               | Example amounts (18 decimals)                                |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Employer  | `$AGIALPHA.approve(StakeManager, 1_050000000000000000)` → `JobRegistry.acknowledgeTaxPolicy()` → `JobRegistry.createJob(1_000000000000000000, uri)` → `JobRegistry.acknowledgeAndFinalize(jobId) (employer wallet only)`                              | approve `1_050000000000000000` for a 1‑token reward + 5% fee |
-| Agent     | `$AGIALPHA.approve(StakeManager, 1_000000000000000000)` → `JobRegistry.stakeAndApply(jobId, 1_000000000000000000)`                                                                                                                                    | stake `1_000000000000000000`                                 |
-| Validator | `$AGIALPHA.approve(StakeManager, 1_000000000000000000)` → `StakeManager.depositStake(1, 1_000000000000000000)` → `ValidationModule.commitValidation(jobId, hash, sub, proof)` → `ValidationModule.revealValidation(jobId, approve, salt, sub, proof)` | stake `1_000000000000000000`                                 |
-| Disputer  | `$AGIALPHA.approve(StakeManager, 1_000000000000000000)` → `JobRegistry.acknowledgeAndDispute(jobId, evidence)` → `DisputeModule.resolve(jobId, uphold, signatures)` (majority moderators or owner)                                                    | dispute fee `1_000000000000000000`                           |
+| Role      | Required function calls                                                                                                           | Example amounts (18 decimals)                                |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Employer  | `$AGIALPHA.approve(StakeManager, 1_050000000000000000)` → `JobRegistry.acknowledgeTaxPolicy()` → `JobRegistry.createJob(1_000000000000000000, deadline, specHash, uri)` → `JobRegistry.acknowledgeAndFinalize(jobId)` | approve `1_050000000000000000` for a 1‑token reward + 5% fee |
+| Agent     | `$AGIALPHA.approve(StakeManager, 1_000000000000000000)` → `JobRegistry.stakeAndApply(jobId, 1_000000000000000000)`                | stake `1_000000000000000000`                                 |
+| Validator | `$AGIALPHA.approve(StakeManager, 1_000000000000000000)` → `StakeManager.depositStake(1, 1_000000000000000000)` → `ValidationModule.commitValidation(jobId, hash, sub, proof)` → `ValidationModule.revealValidation(jobId, approve, burnTxHash, salt, sub, proof)` | stake `1_000000000000000000`                                 |
+| Disputer  | `$AGIALPHA.approve(StakeManager, 1_000000000000000000)` → `JobRegistry.acknowledgeAndDispute(jobId, evidence)` → `DisputeModule.resolve(jobId, uphold, signatures)` (majority moderators or owner) | dispute fee `1_000000000000000000`                           |
 
 ## ENS prerequisites
 
@@ -160,7 +160,7 @@ Before performing any on-chain action, employers, agents, and validators must ca
 1. Open the `JobRegistry` address on Etherscan.
 2. In **Write Contract**, connect an employer wallet and execute **acknowledgeTaxPolicy**, then review the `TaxAcknowledged` event log for the disclaimer text.
 3. In **Read Contract**, confirm **isTaxExempt()** returns `true`.
-4. Call **createJob** with job parameters and escrowed token amount.
+4. Call **createJob(reward, deadline, specHash, uri)** after approving the StakeManager for `reward + fee` (fee = `reward * feePct / 100`).
 5. Monitor **JobCreated** events to confirm posting.
 6. After validation and any disputes, the employer burns the fee share then calls **acknowledgeAndFinalize(jobId)** from their wallet to release payments.
 
@@ -186,7 +186,7 @@ Before performing any on-chain action, employers, agents, and validators must ca
    ```
 
 3. During validation, open `ValidationModule`, confirm **isTaxExempt()**, and send hashed votes with **commitValidation(jobId, commitHash, subdomain, proof)**.
-4. Reveal decisions using **revealValidation(jobId, approve, salt, subdomain, proof)** before the window closes.
+4. Reveal decisions using **revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)** before the window closes.
 
 ### Tax Policy
 
@@ -240,7 +240,7 @@ The `TaxPolicy` contract is informational only: it never holds funds and imposes
 ### Commit & reveal validation votes
 
 1. During the commit window open `ValidationModule` → **Write** and call **commitValidation(jobId, hash, subdomain, proof)**.
-2. When the reveal window opens, call **revealValidation(jobId, approve, salt, subdomain, proof)** from the same address.
+2. When the reveal window opens, call **revealValidation(jobId, approve, burnTxHash, salt, subdomain, proof)** from the same address.
 
 ### Raise & resolve disputes
 
@@ -272,7 +272,7 @@ Linking enables ENS subdomain checks and membership proofs through a shared regi
 
 | Function                                                                                                                                         | Parameters                                                  | Typical Use Case                                            |
 | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------- |
-| `createJob(string details, uint256 reward)`                                                                                                      | `details` – off-chain URI, `reward` – escrowed token amount | Employer posts a new job and locks payment.                 |
+| `createJob(uint256 reward, uint64 deadline, bytes32 specHash, string uri)` | `reward` – escrowed tokens, `deadline` – unix time, `specHash` – metadata hash, `uri` – job reference | Employer posts a new job and locks `reward + fee`. |
 | `acknowledgeTaxPolicy()`                                                                                                                         | none                                                        | Participant confirms tax disclaimer before interacting.     |
 | `acknowledgeAndFinalize(uint256 jobId)`                                                                                                          | `jobId` – job reference                                     | Employer finalizes a validated job and burns the fee share. |
 | `setModules(address validation, address stake, address reputation, address dispute, address certificate, address feePool, address[] ackModules)` | module addresses and ack modules                            | Owner wires modules and sets acknowledgement requirements.  |
@@ -282,14 +282,14 @@ Linking enables ENS subdomain checks and membership proofs through a shared regi
 | Function                                                       | Parameters                                                   | Typical Use Case                                                                                                      |
 | -------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | `depositStake(uint8 role, uint256 amount)`                     | `role` – 0 Agent, 1 Validator, 2 Platform; `amount` – tokens | Participants bond tokens for their role.                                                                              |
-| `slash(address offender, address beneficiary, uint256 amount)` | offending address, beneficiary address, amount               | Owner penalises misbehaviour and redirects stake. Beneficiary cannot be the zero address if an employer share is due. |
-
+| `slash(address offender, address beneficiary, uint256 amount)` | offending address, beneficiary address, amount | Owner penalises misbehaviour and redirects stake. Beneficiary cannot be the zero address if an employer share is due. |
 ### ValidationModule
 
-| Function                                            | Parameters                                        | Typical Use Case                                        |
-| --------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------- |
-| `commit(uint256 jobId, bytes32 hash)`               | `jobId` – job reference, `hash` – vote commitment | Validator submits a hashed vote during commit window.   |
-| `reveal(uint256 jobId, bool verdict, bytes32 salt)` | jobId, approval verdict, salt                     | Validator reveals vote before the reveal window closes. |
+| Function                                            | Parameters                                        | Typical Use Case                                    |
+| --------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------- |
+
+| `commitValidation(uint256 jobId, bytes32 hash, string subdomain, bytes32[] proof)` | `jobId`, `hash`, validator ENS subdomain, optional proof | Validator submits a hashed vote during commit window. |
+| `revealValidation(uint256 jobId, bool verdict, bytes32 burnTxHash, bytes32 salt, string subdomain, bytes32[] proof)` | jobId, verdict, burn receipt hash, salt, ENS label, optional proof | Validator reveals vote before the reveal window closes. |
 
 ### DisputeModule
 

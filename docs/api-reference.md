@@ -8,7 +8,7 @@ Coordinates the lifecycle of jobs and mediates between modules.
 
 ### Key Functions
 
-- `createJob(uint256 reward, string uri)` – Post a new job with a reward and metadata URI.
+- `createJob(uint256 reward, uint64 deadline, bytes32 specHash, string uri)` – Post a new job with a reward, deadline, spec hash and metadata URI.
 - `applyForJob(uint256 jobId, string subdomain, bytes32[] proof)` – Agent applies for an open job using a label under `agent.agi.eth`.
 - `stakeAndApply(uint256 jobId, string subdomain, bytes32[] proof)` – Combine staking and application in one call.
 - `submit(uint256 jobId, bytes32 resultHash, string resultURI, string subdomain, bytes32[] proof)` – Submit work for validation.
@@ -20,7 +20,7 @@ Coordinates the lifecycle of jobs and mediates between modules.
 ### Example
 
 ```solidity
-JobRegistry(registry).createJob(1_000000000000000000, "ipfs://QmHash");
+JobRegistry(registry).createJob(1_000000000000000000, block.timestamp + 1 hours, keccak256(bytes("spec")), "ipfs://QmHash");
 ```
 
 ## StakeManager
@@ -52,13 +52,14 @@ array.
 ### Key Functions
 
 - `commitValidation(uint256 jobId, bytes32 commitHash, string subdomain, bytes32[] proof)` – Commit to a validation decision.
-- `revealValidation(uint256 jobId, bool approve, bytes32 salt, string subdomain, bytes32[] proof)` – Reveal the decision.
+- `revealValidation(uint256 jobId, bool approve, bytes32 burnTxHash, bytes32 salt, string subdomain, bytes32[] proof)` – Reveal the decision, providing the burn receipt hash when required.
 - `finalize(uint256 jobId)` – Conclude validation after the reveal window.
 
 ### Example
 
 ```solidity
 validation.commitValidation(jobId, commitHash, "alice", proof); // alice.club.agi.eth
+validation.revealValidation(jobId, true, burnTxHash, salt, "alice", proof);
 ```
 
 ## DisputeModule

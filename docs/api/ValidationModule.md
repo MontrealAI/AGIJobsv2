@@ -13,7 +13,7 @@ Manages commit‑reveal voting for submitted jobs.
 - `start(uint256 jobId, uint256 entropy)` – select validators and open the commit window.
 - `selectValidators(uint256 jobId, uint256 entropy)` – pick validators using on-chain randomness; mixes `block.prevrandao` or, if unavailable, recent block hashes with `msg.sender` so no off-chain randomness provider is required.
 - `commitValidation(uint256 jobId, bytes32 commitHash, string subdomain, bytes32[] proof)` – commit to a vote (ENS parameters required).
-- `revealValidation(uint256 jobId, bool approve, bytes32 salt, string subdomain, bytes32[] proof)` – reveal vote (ENS parameters required).
+- `revealValidation(uint256 jobId, bool approve, bytes32 burnTxHash, bytes32 salt, string subdomain, bytes32[] proof)` – reveal vote (ENS parameters required). Include the burn receipt hash if the job required a burn.
   For both, `subdomain` is the validator's label under `club.agi.eth`.
 - `finalize(uint256 jobId)` – tally reveals and trigger payout.
 - `resetJobNonce(uint256 jobId)` – clear validator commitments for a job.

@@ -16,7 +16,10 @@ const provider = new ethers.JsonRpcProvider(requireEnv('RPC_URL'));
 const signer = new ethers.Wallet(requireEnv('PRIVATE_KEY'), provider);
 
 const registryAbi = [
+  'function acknowledgeTaxPolicy() returns (string)',
   'function createJob(uint256 reward, uint64 deadline, bytes32 specHash, string uri)',
+  'function feePct() view returns (uint256)',
+  'function stakeManager() view returns (address)',
   'function applyForJob(uint256 jobId, string subdomain, bytes32[] proof)',
   'function submit(uint256 jobId, bytes32 resultHash, string resultURI)',
   'function raiseDispute(uint256 jobId, bytes32 evidenceHash)',
@@ -25,7 +28,7 @@ const registryAbi = [
 const stakeAbi = ['function depositStake(uint8 role, uint256 amount)'];
 const validationAbi = [
   'function commitValidation(uint256 jobId, bytes32 hash, string subdomain, bytes32[] proof)',
-  'function revealValidation(uint256 jobId, bool approve, bytes32 salt, string subdomain, bytes32[] proof)',
+  'function revealValidation(uint256 jobId, bool approve, bytes32 burnTxHash, bytes32 salt, string subdomain, bytes32[] proof)',
   'function finalize(uint256 jobId)',
 ];
 
@@ -61,8 +64,14 @@ const attestation = new ethers.Contract(
 // Amounts are converted using the fixed 18‑decimal configuration.
 async function postJob(amount = '1') {
   const reward = ethers.parseUnits(amount.toString(), TOKEN_DECIMALS);
+  const feePct = await registry.feePct();
+  const fee = (reward * BigInt(feePct)) / 100n;
+  const total = reward + fee;
   const deadline = Math.floor(Date.now() / 1000) + 3600;
   const specHash = ethers.id('spec');
+  const stakeAddress = await registry.stakeManager();
+  await registry.acknowledgeTaxPolicy();
+  await token.approve(stakeAddress, total);
   await registry.createJob(reward, deadline, specHash, 'ipfs://job');
 }
 
@@ -83,9 +92,25 @@ async function submit(jobId, uri) {
 }
 
 // Validators pass their `subdomain` label under `club.agi.eth` when voting.
-async function validate(jobId, hash, subdomain, proof, approve, salt) {
+async function validate(
+  jobId,
+  hash,
+  subdomain,
+  proof,
+  approve,
+  salt,
+  burnTxHash
+) {
+  await registry.acknowledgeTaxPolicy();
   await validation.commitValidation(jobId, hash, subdomain, proof);
-  await validation.revealValidation(jobId, approve, salt, subdomain, proof);
+  await validation.revealValidation(
+    jobId,
+    approve,
+    burnTxHash ?? ethers.ZeroHash,
+    salt,
+    subdomain,
+    proof
+  );
   await validation.finalize(jobId);
 }
 

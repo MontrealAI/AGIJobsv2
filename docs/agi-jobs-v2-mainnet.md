@@ -210,7 +210,7 @@
 ### 2.6 Sanity flow (real mainnet, small amounts)
 
 - **Approve & stake:** `$AGIALPHA.approve(StakeManager, 1e18)` → `StakeManager.depositStake(role, 1e18)`
-- **Post a job:** `JobRegistry.createJob(1e18, "ipfs://Qm...")`
+- **Post a job:** `JobRegistry.createJob(1e18, now+3600, keccak256("spec"), "ipfs://Qm...")`
 - **Apply (agent):** `applyForJob(jobId, "alice", [])` (uses `alice.agent.agi.eth`)
 - **Validate:** validators `commitValidation` then `revealValidation`
 - **Finalize:** `ValidationModule.finalize(jobId)` → payouts, fee burn, events. :contentReference[oaicite:41]{index=41}
@@ -239,7 +239,7 @@
 
 ### 3.3 Create a job (employer)
 
-- Approve StakeManager for the **reward**, then call `JobRegistry.createJob(reward, "ipfs://job-spec")`.
+- Approve StakeManager for **reward + fee**, then call `JobRegistry.createJob(reward, deadline, specHash, "ipfs://job-spec")`.
 - On success, note the **jobId** from the `JobCreated` event. :contentReference[oaicite:44]{index=44}
 
 ### 3.4 Apply (agent)
@@ -255,7 +255,7 @@
 ### 3.6 Validate (validators)
 
 - **Commit phase:** `commitValidation(jobId, commitHash, "subdomainLabel", proof[])`
-- **Reveal phase:** `revealValidation(jobId, approve, salt)` (must match the commit hash).
+- **Reveal phase:** `revealValidation(jobId, approve, burnTxHash, salt, "subdomainLabel", proof[])` (must match the commit hash).
 - The module tallies results; event: `JobCompleted(jobId, success)`. :contentReference[oaicite:47]{index=47}
 
 ### 3.7 Finalize & get paid
