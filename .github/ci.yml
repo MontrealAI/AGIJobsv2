@@ -3,21 +3,38 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
   schedule:
     - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -eo pipefail
+
+env:
+  FORCE_COLOR: '1'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 20.x
           cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
       - name: Verify AGIALPHA constants
         run: npm run verify:agialpha
       - name: Detect ungenerated constants
@@ -31,7 +48,7 @@ jobs:
       - name: Run lint
         run: npm run lint
       - name: Check formatting
-        run: npm run format -- --check
+        run: npm run format:check
       - name: Run tests
         run: npm test
       - name: Check module governance
@@ -39,24 +56,27 @@ jobs:
 
   slither:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 20.x
           cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install Node.js dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
       - name: Compile contracts
         run: npx hardhat compile --force
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
       - name: Install Slither
         run: |
-          pip install slither-analyzer solc-select
+          python -m pip install --upgrade pip
+          pip install 'slither-analyzer==0.10.4' 'crytic-compile==0.3.6' 'solc-select==1.1.1'
           solc-select install 0.8.25
           solc-select use 0.8.25
       - name: Run Slither
@@ -88,43 +108,49 @@ jobs:
 
   echidna:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 20.x
           cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
       - name: Run Echidna fuzzing campaign
         run: npm run echidna
 
   coverage:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 20.x
           cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
       - name: Run Solidity coverage with threshold gate
         run: npm run coverage:full
 
   gas-snapshot:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 20.x
           cache: npm
+          cache-dependency-path: package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
