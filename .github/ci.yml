@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify AGIALPHA constants
+        run: npm run verify:agialpha
+      - name: Detect ungenerated constants
+        run: npm run compile && git diff --exit-code contracts/Constants.sol
+      - name: Verify module wiring
+        env:
+          TRUFFLE_NETWORK: mainnet
+          MAINNET_RPC_URL: https://cloudflare-eth.com
+          MAINNET_PRIVATE_KEY: 0x0000000000000000000000000000000000000000000000000000000000000001
+        run: npm run wire:verify
+      - name: Run lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format -- --check
+      - name: Run tests
+        run: npm test
+      - name: Check module governance
+        run: npx ts-node --compiler-options '{"module":"commonjs"}' scripts/transfer-ownership.ts --new-owner 0x0000000000000000000000000000000000000000
+
+  slither:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install Node.js dependencies
+        run: npm ci
+      - name: Compile contracts
+        run: npx hardhat compile --force
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Slither
+        run: |
+          pip install slither-analyzer solc-select
+          solc-select install 0.8.25
+          solc-select use 0.8.25
+      - name: Run Slither
+        run: |
+          set -euo pipefail
+          mkdir -p slither-report
+          set +e
+          slither . \
+            --solc-remaps @openzeppelin=node_modules/@openzeppelin/ \
+            --filter-paths node_modules \
+            --compile-force-framework hardhat \
+            --hardhat-ignore-compile \
+            --json slither-report/slither-report.json \
+            --checklist \
+            --fail-high
+          status=$?
+          set -e
+          if [ -f slither-checklist.md ]; then
+            mv slither-checklist.md slither-report/slither-report.md
+          fi
+          exit "$status"
+      - name: Upload Slither report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: slither-report
+          path: slither-report/
+          if-no-files-found: error
+
+  echidna:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Echidna fuzzing campaign
+        run: npm run echidna
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Solidity coverage with threshold gate
+        run: npm run coverage:full
+
+  gas-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Run gas snapshot regression check
+        run: npm run gas:check
