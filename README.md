@@ -127,6 +127,16 @@ Use the `examples/ethers-quickstart.js` script to interact with the deployed con
 
 The [API reference](docs/api-reference.md) describes every public contract function and includes TypeScript and Python snippets. For an event‑driven workflow check the minimal [agent gateway](examples/agent-gateway.js) that listens for `JobCreated` events and applies automatically.
 
+### Governance control center
+
+Run the orchestrator to synchronise every owner-controlled module with the committed configuration in one command:
+
+```bash
+npm run owner:plan -- --network <network>
+```
+
+The command performs a dry run by default, streaming the output of each module script listed in [`config/governance-control.json`](config/governance-control.json). To apply the updates, append `--execute` (or run `npm run owner:apply -- --network <network>`). Filter to a subset of modules using `--module FeePool --module StakeManager`, or skip a module with `--skip TaxPolicy`. The orchestrator validates the Hardhat installation, halts on the first error, and preserves the detailed audit trail already produced by the underlying scripts.
+
 ### Network timeouts
 
 Outbound HTTP requests from the gateway, example agents and validator UI respect the `FETCH_TIMEOUT_MS` environment variable (default `5000` milliseconds). Browser clients read the value from `NEXT_PUBLIC_FETCH_TIMEOUT_MS`.

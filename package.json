@@ -29,6 +29,8 @@
     "build:gateway": "tsc -p agent-gateway/tsconfig.json",
     "agent:gateway": "node examples/agentic/v2-agent-gateway.js",
     "agent:validator": "node examples/agentic/v2-validator.js",
+    "owner:plan": "npx ts-node scripts/governance/apply-config.ts",
+    "owner:apply": "npm run owner:plan -- --execute",
     "format": "prettier --write \"**/*.{js,ts,md}\"",
     "format:check": "prettier --check \"**/*.{js,ts,md}\"",
     "identity:register": "npx ts-node scripts/identity/manageEnsKeys.ts",
