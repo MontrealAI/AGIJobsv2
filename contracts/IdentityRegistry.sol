@@ -198,6 +198,13 @@ contract IdentityRegistry is Ownable2Step {
         if (_clubRootNode != bytes32(0)) {
             emit ClubRootNodeUpdated(_clubRootNode);
         }
+
+        // Canonical alpha aliases are always registered by default so owners of
+        // `*.alpha.agent.agi.eth` and `*.alpha.club.agi.eth` are recognised
+        // immediately. They can still be explicitly reconfigured by the
+        // contract owner when operating on alternative roots or networks.
+        _setAgentRootAlias(MAINNET_ALPHA_AGENT_ROOT_NODE, true);
+        _setClubRootAlias(MAINNET_ALPHA_CLUB_ROOT_NODE, true);
     }
 
     // ---------------------------------------------------------------------

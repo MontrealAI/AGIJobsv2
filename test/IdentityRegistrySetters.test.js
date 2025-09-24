@@ -42,6 +42,29 @@ describe('IdentityRegistry setters', function () {
     );
   });
 
+  it('initialises canonical alpha aliases for agents and validators', async () => {
+    const alphaAgent = await identity.MAINNET_ALPHA_AGENT_ROOT_NODE();
+    const alphaClub = await identity.MAINNET_ALPHA_CLUB_ROOT_NODE();
+
+    const agentAliases = await identity.getAgentRootAliases();
+    const clubAliases = await identity.getClubRootAliases();
+
+    expect(agentAliases).to.include(alphaAgent);
+    expect(clubAliases).to.include(alphaClub);
+
+    const [agentExists, agentEnabled] = await identity.agentRootAliasInfo(
+      alphaAgent
+    );
+    const [clubExists, clubEnabled] = await identity.clubRootAliasInfo(
+      alphaClub
+    );
+
+    expect(agentExists).to.equal(true);
+    expect(agentEnabled).to.equal(true);
+    expect(clubExists).to.equal(true);
+    expect(clubEnabled).to.equal(true);
+  });
+
   describe('setENS', function () {
     it('reverts for zero address', async () => {
       await expect(
@@ -163,12 +186,15 @@ describe('IdentityRegistry setters', function () {
     const aliasNode = ethers.id('alias-root');
 
     it('allows enabling and disabling agent aliases', async () => {
+      const startAgentAliases = await identity.getAgentRootAliases();
       await expect(
         identity.setAgentRootAlias(ethers.ZeroHash, true)
       ).to.be.revertedWithCustomError(identity, 'InvalidRootAlias');
 
       await identity.setAgentRootAlias(aliasNode, true);
-      expect(await identity.getAgentRootAliases()).to.deep.equal([aliasNode]);
+      const agentAliases = await identity.getAgentRootAliases();
+      expect(agentAliases).to.include(aliasNode);
+      expect(agentAliases).to.include.members(startAgentAliases);
       const [existsEnabled, enabledState] = await identity.agentRootAliasInfo(
         aliasNode
       );
@@ -176,6 +202,9 @@ describe('IdentityRegistry setters', function () {
       expect(enabledState).to.equal(true);
 
       await identity.setAgentRootAlias(aliasNode, false);
+      const aliasesAfterDisable = await identity.getAgentRootAliases();
+      expect(aliasesAfterDisable).to.not.include(aliasNode);
+      expect(aliasesAfterDisable).to.include.members(startAgentAliases);
       const [exists, enabled] = await identity.agentRootAliasInfo(aliasNode);
       expect(exists).to.equal(true);
       expect(enabled).to.equal(false);
@@ -183,6 +212,8 @@ describe('IdentityRegistry setters', function () {
 
     it('allows batched alias updates with tracking', async () => {
       const clubAlias = ethers.id('club-alias');
+      const startAgentAliases = await identity.getAgentRootAliases();
+      const startClubAliases = await identity.getClubRootAliases();
       await expect(
         identity.applyAliasConfiguration(
           [
@@ -194,8 +225,17 @@ describe('IdentityRegistry setters', function () {
       )
         .to.emit(identity, 'AliasConfigurationApplied')
         .withArgs(owner.address, 2, 1);
+      const agentAliases = await identity.getAgentRootAliases();
       const clubAliases = await identity.getClubRootAliases();
-      expect(clubAliases).to.deep.equal([clubAlias]);
+      const [agentExists, agentEnabled] = await identity.agentRootAliasInfo(
+        aliasNode
+      );
+      expect(agentExists).to.equal(true);
+      expect(agentEnabled).to.equal(false);
+      expect(agentAliases).to.include.members(startAgentAliases);
+      expect(agentAliases).to.not.include(aliasNode);
+      expect(clubAliases).to.include.members(startClubAliases);
+      expect(clubAliases).to.include(clubAlias);
       const [clubExists, clubEnabled] = await identity.clubRootAliasInfo(
         clubAlias
       );
