@@ -494,6 +494,80 @@ function loadThermodynamicsConfig(options = {}) {
   return { config, path: configPath, network };
 }
 
+function normaliseRootAliases(rootName, aliases) {
+  if (!aliases) {
+    return { aliases: [], changed: false };
+  }
+  const list = Array.isArray(aliases) ? aliases : [];
+  let changed = !Array.isArray(aliases) && Boolean(aliases);
+  const result = [];
+  const seen = new Set();
+  const expectedSuffix = (rootName || '').toLowerCase();
+
+  for (const entry of list) {
+    if (!entry || typeof entry !== 'object') {
+      changed = true;
+      continue;
+    }
+    const rawName = typeof entry.name === 'string' ? entry.name : '';
+    const trimmedName = rawName.trim();
+    const lowerName = trimmedName.toLowerCase();
+    if (!lowerName) {
+      changed = true;
+      continue;
+    }
+    if (rawName !== trimmedName || rawName.toLowerCase() !== lowerName) {
+      changed = true;
+    }
+    if (seen.has(lowerName)) {
+      changed = true;
+      continue;
+    }
+    seen.add(lowerName);
+
+    const expectedNode = ethers.namehash(lowerName);
+    if (entry.node) {
+      try {
+        const provided = ensureBytes32(entry.node);
+        if (provided.toLowerCase() !== expectedNode.toLowerCase()) {
+          changed = true;
+        }
+      } catch (_) {
+        changed = true;
+      }
+    } else {
+      changed = true;
+    }
+
+    const derivedLabel = lowerName.split('.')[0] || '';
+    const rawLabel =
+      typeof entry.label === 'string' ? entry.label.trim().toLowerCase() : '';
+    const label = rawLabel || derivedLabel;
+    if (rawLabel !== label) {
+      changed = true;
+    }
+    const labelhash = ethers.id(label);
+    if (
+      typeof entry.labelhash !== 'string' ||
+      entry.labelhash.trim().toLowerCase() !== labelhash.toLowerCase()
+    ) {
+      changed = true;
+    }
+
+    if (expectedSuffix && !lowerName.endsWith(expectedSuffix)) {
+      changed = true;
+    }
+
+    result.push({ name: lowerName, label, labelhash, node: expectedNode });
+  }
+
+  if (result.length !== list.length) {
+    changed = true;
+  }
+
+  return { aliases: result, changed };
+}
+
 function normaliseRootEntry(key, root) {
   const result = { ...root };
   let changed = false;
@@ -544,6 +618,16 @@ function normaliseRootEntry(key, root) {
   if (result.role !== defaultRole) {
     result.role = defaultRole;
     changed = true;
+  }
+
+  const { aliases, changed: aliasChanged } = normaliseRootAliases(name, root?.aliases);
+  if (aliasChanged) {
+    changed = true;
+  }
+  if (aliases.length || (result.aliases && result.aliases.length)) {
+    result.aliases = aliases;
+  } else if (result.aliases) {
+    delete result.aliases;
   }
 
   return { root: result, changed };

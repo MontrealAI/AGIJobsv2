@@ -139,6 +139,69 @@ describe('IdentityRegistry setters', function () {
       await identity.configureMainnet();
       expect(await identity.nameWrapper()).to.equal(mainnetWrapper);
     });
+
+    it('activates the canonical alpha aliases', async () => {
+      const alphaAgent = await identity.MAINNET_ALPHA_AGENT_ROOT_NODE();
+      const alphaClub = await identity.MAINNET_ALPHA_CLUB_ROOT_NODE();
+      await identity.configureMainnet();
+      expect(await identity.getAgentRootAliases()).to.include(alphaAgent);
+      expect(await identity.getClubRootAliases()).to.include(alphaClub);
+      const [agentExists, agentEnabled] = await identity.agentRootAliasInfo(
+        alphaAgent
+      );
+      expect(agentExists).to.equal(true);
+      expect(agentEnabled).to.equal(true);
+      const [clubExists, clubEnabled] = await identity.clubRootAliasInfo(
+        alphaClub
+      );
+      expect(clubExists).to.equal(true);
+      expect(clubEnabled).to.equal(true);
+    });
+  });
+
+  describe('root alias management', function () {
+    const aliasNode = ethers.id('alias-root');
+
+    it('allows enabling and disabling agent aliases', async () => {
+      await expect(
+        identity.setAgentRootAlias(ethers.ZeroHash, true)
+      ).to.be.revertedWithCustomError(identity, 'InvalidRootAlias');
+
+      await identity.setAgentRootAlias(aliasNode, true);
+      expect(await identity.getAgentRootAliases()).to.deep.equal([aliasNode]);
+      const [existsEnabled, enabledState] = await identity.agentRootAliasInfo(
+        aliasNode
+      );
+      expect(existsEnabled).to.equal(true);
+      expect(enabledState).to.equal(true);
+
+      await identity.setAgentRootAlias(aliasNode, false);
+      const [exists, enabled] = await identity.agentRootAliasInfo(aliasNode);
+      expect(exists).to.equal(true);
+      expect(enabled).to.equal(false);
+    });
+
+    it('allows batched alias updates with tracking', async () => {
+      const clubAlias = ethers.id('club-alias');
+      await expect(
+        identity.applyAliasConfiguration(
+          [
+            { root: aliasNode, enabled: true },
+            { root: aliasNode, enabled: false },
+          ],
+          [{ root: clubAlias, enabled: true }]
+        )
+      )
+        .to.emit(identity, 'AliasConfigurationApplied')
+        .withArgs(owner.address, 2, 1);
+      const clubAliases = await identity.getClubRootAliases();
+      expect(clubAliases).to.deep.equal([clubAlias]);
+      const [clubExists, clubEnabled] = await identity.clubRootAliasInfo(
+        clubAlias
+      );
+      expect(clubExists).to.equal(true);
+      expect(clubEnabled).to.equal(true);
+    });
   });
 
   describe('applyConfiguration', function () {

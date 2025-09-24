@@ -1,6 +1,6 @@
 # ENS Identity Setup
 
-Agents and validators must prove ownership of specific ENS subdomains before interacting with the AGIJobs platform. This guide walks through obtaining a name, configuring records, and optionally delegating access.
+Agents and validators must prove ownership of specific ENS subdomains before interacting with the AGIJobs platform. This guide walks through obtaining a name, configuring records, and optionally delegating access. Primary roots live under `agent.agi.eth` and `club.agi.eth`, and the system recognises delegated aliases under `alpha.agent.agi.eth` and `alpha.club.agi.eth` with identical verification rules.
 
 ## Agent gateway automation
 
