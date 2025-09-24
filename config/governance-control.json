@@ -1,0 +1,34 @@
+{
+  "modules": [
+    {
+      "name": "JobRegistry",
+      "script": "scripts/updateJobRegistry.ts",
+      "args": [],
+      "description": "Synchronize JobRegistry treasury, tax policy, stakes, and acknowledgers from config/job-registry.json."
+    },
+    {
+      "name": "StakeManager",
+      "script": "scripts/updateStakeManager.ts",
+      "args": [],
+      "description": "Apply treasury, module wiring, staking, and penalty configuration from config/stake-manager.json."
+    },
+    {
+      "name": "FeePool",
+      "script": "scripts/updateFeePool.ts",
+      "args": [],
+      "description": "Update reward routing, burn percentage, treasury controls, and rewarder permissions via config/fee-pool.json."
+    },
+    {
+      "name": "PlatformIncentives",
+      "script": "scripts/updatePlatformIncentives.ts",
+      "args": [],
+      "description": "Ensure PlatformIncentives wiring matches config/platform-incentives.json."
+    },
+    {
+      "name": "TaxPolicy",
+      "script": "scripts/updateTaxPolicy.ts",
+      "args": [],
+      "description": "Publish the latest tax policy URI and acknowledgers from config/tax-policy.json."
+    }
+  ]
+}
