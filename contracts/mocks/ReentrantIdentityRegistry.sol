@@ -101,6 +101,14 @@ contract ReentrantIdentityRegistry is IIdentityRegistry {
     function setClubRootNode(bytes32) external {}
     function setAgentMerkleRoot(bytes32) external {}
     function setValidatorMerkleRoot(bytes32) external {}
+    function setAgentRootAlias(bytes32, bool) external {}
+    function setClubRootAlias(bytes32, bool) external {}
+    function setAgentRootAliases(RootAliasConfig[] calldata) external {}
+    function setClubRootAliases(RootAliasConfig[] calldata) external {}
+    function applyAliasConfiguration(
+        RootAliasConfig[] calldata,
+        RootAliasConfig[] calldata
+    ) external {}
 
     // allowlists - no-ops
     function addAdditionalAgent(address) external {}
@@ -120,5 +128,29 @@ contract ReentrantIdentityRegistry is IIdentityRegistry {
 
     function getAgentType(address) external pure returns (AgentType) {
         return AgentType.Human;
+    }
+
+    function getAgentRootAliases() external pure returns (bytes32[] memory aliases) {
+        return new bytes32[](0);
+    }
+
+    function getClubRootAliases() external pure returns (bytes32[] memory aliases) {
+        return new bytes32[](0);
+    }
+
+    function agentRootAliasInfo(bytes32)
+        external
+        pure
+        returns (bool exists, bool enabled)
+    {
+        return (false, false);
+    }
+
+    function clubRootAliasInfo(bytes32)
+        external
+        pure
+        returns (bool exists, bool enabled)
+    {
+        return (false, false);
     }
 }

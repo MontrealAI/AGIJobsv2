@@ -223,6 +223,15 @@ export interface EnsRootConfig {
   merkleRoot: string;
   role?: string;
   resolver?: string;
+  aliases?: EnsRootAliasConfig[];
+  [key: string]: unknown;
+}
+
+export interface EnsRootAliasConfig {
+  name: string;
+  label: string;
+  labelhash: string;
+  node: string;
   [key: string]: unknown;
 }
 

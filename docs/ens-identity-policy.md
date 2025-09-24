@@ -4,8 +4,8 @@ All participation in AGIJobs requires on‑chain proof of ENS subdomain ownershi
 
 ## Requirements
 
-- **Agents** must own an ENS subdomain under `agent.agi.eth` and present it when applying for or submitting jobs.
-- **Validators** must own a subdomain under `club.agi.eth` for committing or revealing validation results.
+- **Agents** must own an ENS subdomain under `agent.agi.eth` (or the delegated alias root `alpha.agent.agi.eth`) and present it when applying for or submitting jobs.
+- **Validators** must own a subdomain under `club.agi.eth` (or `alpha.club.agi.eth`) for committing or revealing validation results.
 - Owner controlled allowlists and Merkle proofs exist only for emergency governance and migration. Regular participants are expected to use ENS.
 - Attestations may be recorded in `AttestationRegistry` to cache successful checks and reduce gas usage, but they do not bypass the ENS requirement.
 

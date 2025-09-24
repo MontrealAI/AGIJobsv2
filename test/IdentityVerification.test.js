@@ -7,7 +7,7 @@ const { time } = require('@nomicfoundation/hardhat-network-helpers');
 describe('Identity verification enforcement', function () {
   describe('JobRegistry', function () {
     let owner, employer, agent;
-    let registry, rep, identity, stakeManager;
+    let registry, rep, identity, stakeManager, ens, wrapper;
 
     beforeEach(async () => {
       [owner, employer, agent] = await ethers.getSigners();
@@ -25,11 +25,11 @@ describe('Identity verification enforcement', function () {
       const ENS = await ethers.getContractFactory(
         'contracts/mocks/legacy/MockENS.sol:MockENS'
       );
-      const ens = await ENS.deploy();
+      ens = await ENS.deploy();
       const Wrapper = await ethers.getContractFactory(
         'contracts/mocks/legacy/MockNameWrapper.sol:MockNameWrapper'
       );
-      const wrapper = await Wrapper.deploy();
+      wrapper = await Wrapper.deploy();
 
       const Identity = await ethers.getContractFactory(
         'contracts/IdentityRegistry.sol:IdentityRegistry'
@@ -102,11 +102,32 @@ describe('Identity verification enforcement', function () {
         registry.connect(agent).submit(jobId, ethers.id('res'), 'res', 'a', [])
       ).to.be.revertedWithCustomError(registry, 'NotAuthorizedAgent');
     });
+
+    it('allows agents with alias ENS roots to apply', async () => {
+      const aliasRoot = ethers.id('alias-agent-root');
+      await identity.setAgentRootAlias(aliasRoot, true);
+      const label = 'alias';
+      const aliasNode = ethers.keccak256(
+        ethers.solidityPacked(
+          ['bytes32', 'bytes32'],
+          [aliasRoot, ethers.id(label)]
+        )
+      );
+      await wrapper.setOwner(BigInt(aliasNode), agent.address);
+      const jobId = await createJob();
+      await registry.connect(agent).applyForJob(jobId, label, []);
+    });
   });
 
   describe('ValidationModule', function () {
     let owner, employer, v1, v2, v3;
-    let validation, stakeManager, jobRegistry, reputation, identity;
+    let validation,
+      stakeManager,
+      jobRegistry,
+      reputation,
+      identity,
+      ens,
+      wrapper;
 
     beforeEach(async () => {
       [owner, employer, v1, v2, v3] = await ethers.getSigners();
@@ -143,11 +164,11 @@ describe('Identity verification enforcement', function () {
       const ENS = await ethers.getContractFactory(
         'contracts/mocks/legacy/MockENS.sol:MockENS'
       );
-      const ens = await ENS.deploy();
+      ens = await ENS.deploy();
       const Wrapper = await ethers.getContractFactory(
         'contracts/mocks/legacy/MockNameWrapper.sol:MockNameWrapper'
       );
-      const wrapper = await Wrapper.deploy();
+      wrapper = await Wrapper.deploy();
       const Identity = await ethers.getContractFactory(
         'contracts/IdentityRegistry.sol:IdentityRegistry'
       );
@@ -234,6 +255,25 @@ describe('Identity verification enforcement', function () {
           .connect(signer)
           .revealValidation(1, true, burnTxHash, salt, '', [])
       ).to.be.revertedWithCustomError(validation, 'UnauthorizedValidator');
+    });
+
+    it('accepts validators using alias ENS roots', async () => {
+      const aliasRoot = ethers.id('alias-club-root');
+      await identity.setClubRootAlias(aliasRoot, true);
+      const label = 'alias';
+      const aliasNode = ethers.keccak256(
+        ethers.solidityPacked(
+          ['bytes32', 'bytes32'],
+          [aliasRoot, ethers.id(label)]
+        )
+      );
+      await wrapper.setOwner(BigInt(aliasNode), v1.address);
+      const result = await identity.verifyValidator.staticCall(
+        v1.address,
+        label,
+        []
+      );
+      expect(result[0]).to.equal(true);
     });
   });
 });

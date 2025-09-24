@@ -8,6 +8,11 @@ interface IIdentityRegistry {
         Human,
         AI
     }
+
+    struct RootAliasConfig {
+        bytes32 root;
+        bool enabled;
+    }
     function isAuthorizedAgent(
         address claimant,
         string calldata subdomain,
@@ -40,6 +45,14 @@ interface IIdentityRegistry {
     function setClubRootNode(bytes32 root) external;
     function setAgentMerkleRoot(bytes32 root) external;
     function setValidatorMerkleRoot(bytes32 root) external;
+    function setAgentRootAlias(bytes32 root, bool enabled) external;
+    function setClubRootAlias(bytes32 root, bool enabled) external;
+    function setAgentRootAliases(RootAliasConfig[] calldata updates) external;
+    function setClubRootAliases(RootAliasConfig[] calldata updates) external;
+    function applyAliasConfiguration(
+        RootAliasConfig[] calldata agentAliases,
+        RootAliasConfig[] calldata clubAliases
+    ) external;
 
     // manual allowlists
     function addAdditionalAgent(address agent) external;
@@ -53,6 +66,16 @@ interface IIdentityRegistry {
     function additionalAgents(address account) external view returns (bool);
     function additionalValidators(address account) external view returns (bool);
     function getAgentType(address agent) external view returns (AgentType);
+    function getAgentRootAliases() external view returns (bytes32[] memory);
+    function getClubRootAliases() external view returns (bytes32[] memory);
+    function agentRootAliasInfo(bytes32 root)
+        external
+        view
+        returns (bool exists, bool enabled);
+    function clubRootAliasInfo(bytes32 root)
+        external
+        view
+        returns (bool exists, bool enabled);
 
     // profile metadata
     function setAgentProfileURI(address agent, string calldata uri) external;

@@ -6,7 +6,7 @@ AGIJob Manager is an experimental suite of Ethereum smart contracts and tooling 
 
 > **Legacy resources:** Historical AGIJobsv0 materials remain available in the archived [MontrealAI/AGIJobsv0](https://github.com/MontrealAI/AGIJobsv0) repository. This project carries forward maintained guides under `docs/`, while preserved v0 references now live in [`docs/legacy/`](docs/legacy/README.md).
 
-> **ENS identity required:** Before participating, each agent or validator must control an ENS subdomain. Agents use `<name>.agent.agi.eth` and validators use `<name>.club.agi.eth`. Follow the [ENS identity setup guide](docs/ens-identity-setup.md) to register and configure your name.
+> **ENS identity required:** Before participating, each agent or validator must control an ENS subdomain. Agents use `<name>.agent.agi.eth` (or `<name>.alpha.agent.agi.eth`) and validators use `<name>.club.agi.eth` (or `<name>.alpha.club.agi.eth`). Follow the [ENS identity setup guide](docs/ens-identity-setup.md) to register and configure your name.
 
 All modules now assume the 18‑decimal `$AGIALPHA` token for payments, stakes and dispute deposits with the token address fixed at deployment. The canonical token is deployed externally; this repository ships [`contracts/test/AGIALPHAToken.sol`](contracts/test/AGIALPHAToken.sol) for local testing only. Token address and decimal configuration live in [`config/agialpha.json`](config/agialpha.json) and feed both Solidity and TypeScript consumers.
 
@@ -33,7 +33,7 @@ All modules now assume the 18‑decimal `$AGIALPHA` token for payments, stakes a
 
 ### Identity policy
 
-Agents and validators must own ENS subdomains under `agent.agi.eth` and `club.agi.eth`. All workflows perform on-chain verification and bypass mechanisms are reserved for emergency governance only. See [docs/ens-identity-policy.md](docs/ens-identity-policy.md) for details.
+Agents and validators must own ENS subdomains under `agent.agi.eth`/`alpha.agent.agi.eth` and `club.agi.eth`/`alpha.club.agi.eth`. All workflows perform on-chain verification and bypass mechanisms are reserved for emergency governance only. See [docs/ens-identity-policy.md](docs/ens-identity-policy.md) for details.
 
 > **Emergency allowlists:** The `IdentityRegistry` owner can directly whitelist addresses using `addAdditionalAgent` or `addAdditionalValidator`. These overrides bypass ENS proofs and should only be used to recover from deployment errors or other emergencies.
 
@@ -272,7 +272,7 @@ halt procedures, and monitoring, consult
 All participants must prove ownership of a subdomain in the AGI ENS
 namespace before interacting with the system:
 
-- **Agents** use `<name>.agent.agi.eth`.
+- **Agents** use `<name>.agent.agi.eth` (aliases under `alpha.agent.agi.eth` are also accepted).
 - **Validators** use `<name>.club.agi.eth`.
 
 To register:

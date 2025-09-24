@@ -212,6 +212,49 @@ describe('IdentityRegistry ENS verification', function () {
     ).to.equal(true);
   });
 
+  it('verifies ownership across configured alias roots', async () => {
+    const [owner, alice] = await ethers.getSigners();
+
+    const ENS = await ethers.getContractFactory('MockENS');
+    const ens = await ENS.deploy();
+
+    const Wrapper = await ethers.getContractFactory('MockNameWrapper');
+    const wrapper = await Wrapper.deploy();
+
+    const Stake = await ethers.getContractFactory('MockStakeManager');
+    const stake = await Stake.deploy();
+    const Rep = await ethers.getContractFactory(
+      'contracts/ReputationEngine.sol:ReputationEngine'
+    );
+    const rep = await Rep.deploy(await stake.getAddress());
+
+    const Registry = await ethers.getContractFactory(
+      'contracts/IdentityRegistry.sol:IdentityRegistry'
+    );
+    const id = await Registry.deploy(
+      await ens.getAddress(),
+      await wrapper.getAddress(),
+      await rep.getAddress(),
+      ethers.id('root'),
+      ethers.id('club')
+    );
+
+    const aliasRoot = ethers.id('alias-root');
+    await id.setAgentRootAlias(aliasRoot, true);
+    const label = 'alias';
+    const aliasNode = ethers.keccak256(
+      ethers.solidityPacked(
+        ['bytes32', 'bytes32'],
+        [aliasRoot, ethers.id(label)]
+      )
+    );
+    await wrapper.setOwner(BigInt(aliasNode), alice.address);
+
+    expect(
+      (await id.verifyAgent.staticCall(alice.address, label, []))[0]
+    ).to.equal(true);
+  });
+
   it('allows governance and agents to set capability profiles', async () => {
     const [owner, alice] = await ethers.getSigners();
 
