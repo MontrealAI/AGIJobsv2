@@ -37,6 +37,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify AGIALPHA constants
         run: npm run verify:agialpha
+      - name: Verify ENS alias configuration
+        run: npm run verify:ens
       - name: Detect ungenerated constants
         run: npm run compile && git diff --exit-code contracts/Constants.sol
       - name: Verify module wiring
