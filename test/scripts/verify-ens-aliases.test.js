@@ -129,14 +129,9 @@ describe('verifyEnsAliases script', () => {
       aliasLabel: 'Alpha',
     });
     const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
-    config.agent.aliases[0].labelhash = ethers.hexlify(
-      ethers.randomBytes(32)
-    );
+    config.agent.aliases[0].labelhash = ethers.hexlify(ethers.randomBytes(32));
     config.club.aliases[0].labelhash = config.agent.aliases[0].labelhash;
-    require('fs').writeFileSync(
-      configPath,
-      JSON.stringify(config, null, 2)
-    );
+    require('fs').writeFileSync(configPath, JSON.stringify(config, null, 2));
     try {
       expectThrow(
         () => verifyEnsAliases(configPath, identityPath),

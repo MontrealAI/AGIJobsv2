@@ -210,6 +210,19 @@ describe('IdentityRegistry setters', function () {
       expect(enabled).to.equal(false);
     });
 
+    it('does not allow disabling the canonical alpha aliases', async () => {
+      const alphaAgent = await identity.MAINNET_ALPHA_AGENT_ROOT_NODE();
+      const alphaClub = await identity.MAINNET_ALPHA_CLUB_ROOT_NODE();
+
+      await expect(
+        identity.setAgentRootAlias(alphaAgent, false)
+      ).to.be.revertedWithCustomError(identity, 'CannotDisableCanonicalAlias');
+
+      await expect(
+        identity.setClubRootAlias(alphaClub, false)
+      ).to.be.revertedWithCustomError(identity, 'CannotDisableCanonicalAlias');
+    });
+
     it('allows batched alias updates with tracking', async () => {
       const clubAlias = ethers.id('club-alias');
       const startAgentAliases = await identity.getAgentRootAliases();
