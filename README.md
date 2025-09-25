@@ -290,6 +290,25 @@ For a detailed walkthrough see
 [docs/ens-identity-setup.md](docs/ens-identity-setup.md), including operator
 steps for issuing subdomains.
 
+Operators can synchronise the on-chain ENS configuration at any time with:
+
+```bash
+IDENTITY_REGISTRY=<registry>
+ENS_REGISTRY=<ens>
+NAME_WRAPPER=<wrapper>
+AGENT_ROOT_NODE=agent.agi.eth \
+CLUB_ROOT_NODE=club.agi.eth \
+ENABLE_AGENT_ALIASES=alpha.agent.agi.eth \
+ENABLE_CLUB_ALIASES=alpha.club.agi.eth \
+npx hardhat run scripts/configureEns.ts --network <network>
+```
+
+`AGENT_ROOT_NODE`/`CLUB_ROOT_NODE` accept either raw node hashes or ENS
+names; the script resolves them and automatically keeps the canonical
+`alpha.agent.agi.eth`/`alpha.club.agi.eth` aliases enabled. Additional
+aliases can be managed by setting comma-separated lists in
+`ENABLE_*_ALIASES` and `DISABLE_*_ALIASES`.
+
 ### Delegate addresses with AttestationRegistry
 
 `AttestationRegistry` lets ENS name owners pre-authorize other addresses for
