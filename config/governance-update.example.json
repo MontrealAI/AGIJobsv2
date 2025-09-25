@@ -1,0 +1,62 @@
+{
+  "jobRegistry": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "feePct": 5,
+    "validatorRewardPct": 15,
+    "treasury": "0x0000000000000000000000000000000000000000",
+    "jobStakeTokens": "10",
+    "minAgentStakeTokens": "100",
+    "maxJobRewardTokens": "10000",
+    "maxJobDurationSeconds": 604800,
+    "maxActiveJobsPerAgent": 3,
+    "expirationGracePeriodSeconds": 86400,
+    "taxPolicy": "0x0000000000000000000000000000000000000000",
+    "feePool": "0x0000000000000000000000000000000000000000"
+  },
+  "stakeManager": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "minStakeTokens": "100",
+    "employerSlashPct": 50,
+    "treasurySlashPct": 25,
+    "treasury": "0x0000000000000000000000000000000000000000",
+    "treasuryAllowlist": [
+      {
+        "address": "0x0000000000000000000000000000000000000000",
+        "allowed": true
+      }
+    ],
+    "feePct": 5,
+    "burnPct": 5,
+    "validatorRewardPct": 15,
+    "unbondingPeriodSeconds": 604800,
+    "maxStakePerAddressTokens": "10000",
+    "stakeRecommendations": {
+      "minTokens": "100",
+      "maxTokens": "5000"
+    }
+  },
+  "feePool": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "burnPct": 5,
+    "treasury": "0x0000000000000000000000000000000000000000",
+    "treasuryAllowlist": [
+      {
+        "address": "0x0000000000000000000000000000000000000000",
+        "allowed": true
+      }
+    ]
+  },
+  "taxPolicy": {
+    "address": "0x0000000000000000000000000000000000000000",
+    "policy": {
+      "uri": "ipfs://your-production-tax-policy",
+      "acknowledgement": "Employers, agents, and validators accept all tax responsibility."
+    },
+    "acknowledgers": [
+      {
+        "address": "0x0000000000000000000000000000000000000000",
+        "allowed": true
+      }
+    ]
+  }
+}

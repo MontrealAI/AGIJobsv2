@@ -32,6 +32,7 @@
     "agent:validator": "node examples/agentic/v2-validator.js",
     "owner:plan": "npx ts-node scripts/governance/apply-config.ts",
     "owner:apply": "npm run owner:plan -- --execute",
+    "owner:update": "npx hardhat run scripts/governance/update-economics.ts",
     "format": "prettier --write \"**/*.{js,ts,md}\"",
     "format:check": "prettier --check \"**/*.{js,ts,md}\"",
     "identity:register": "npx ts-node scripts/identity/manageEnsKeys.ts",
