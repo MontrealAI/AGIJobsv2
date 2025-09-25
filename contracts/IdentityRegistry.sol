@@ -14,6 +14,7 @@ error EtherNotAccepted();
 error IncompatibleReputationEngine();
 error InvalidRootAlias();
 error CannotDisablePrimaryRoot();
+error CannotDisableCanonicalAlias();
 
 /// @title IdentityRegistry
 /// @notice Verifies ENS subdomain ownership and tracks manual allowlists
@@ -467,6 +468,9 @@ contract IdentityRegistry is Ownable2Step {
         if (root == agentRootNode && !enabled) {
             revert CannotDisablePrimaryRoot();
         }
+        if (root == MAINNET_ALPHA_AGENT_ROOT_NODE && !enabled) {
+            revert CannotDisableCanonicalAlias();
+        }
         AliasStatus storage status = agentRootAliasStatus[root];
         if (!status.exists) {
             agentRootAliasList.push(root);
@@ -484,6 +488,9 @@ contract IdentityRegistry is Ownable2Step {
         }
         if (root == clubRootNode && !enabled) {
             revert CannotDisablePrimaryRoot();
+        }
+        if (root == MAINNET_ALPHA_CLUB_ROOT_NODE && !enabled) {
+            revert CannotDisableCanonicalAlias();
         }
         AliasStatus storage status = clubRootAliasStatus[root];
         if (!status.exists) {
