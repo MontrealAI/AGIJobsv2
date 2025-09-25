@@ -110,6 +110,8 @@ The script performs a dry run by default, reporting any address, ownership or pa
 
 For a step-by-step mainnet deployment using Truffle, see the [Deploying AGIJobs v2 to Ethereum Mainnet (CLI Guide)](docs/deploying-agijobs-v2-truffle-cli.md).
 
+- **New:** Non-technical operators can follow the streamlined [Non-Technical Production Deployment on Ethereum Mainnet](docs/deployment/non-technical-truffle-mainnet.md) playbook. It consolidates every command, checklist, and verification step (including the governance tuning helper) so a business owner can launch without writing code.
+
 - [docs/deployment-production-guide.md](docs/deployment-production-guide.md) – step-by-step walkthrough for deploying AGI Jobs v2 using only a web browser and Etherscan.
 - [docs/deployment-guide-production.md](docs/deployment-guide-production.md) – production deployment checklist.
 - [docs/agi-jobs-v2-production-deployment-guide.md](docs/agi-jobs-v2-production-deployment-guide.md) – non‑technical guide highlighting best practices such as true token burning and owner updatability.
@@ -136,6 +138,14 @@ npm run owner:plan -- --network <network>
 ```
 
 The command performs a dry run by default, streaming the output of each module script listed in [`config/governance-control.json`](config/governance-control.json). To apply the updates, append `--execute` (or run `npm run owner:apply -- --network <network>`). Filter to a subset of modules using `--module FeePool --module StakeManager`, or skip a module with `--skip TaxPolicy`. The orchestrator validates the Hardhat installation, halts on the first error, and preserves the detailed audit trail already produced by the underlying scripts.
+
+Need to change platform economics, treasury addresses, or tax policy text quickly? Populate `config/governance-update.json` (copy from [`config/governance-update.example.json`](config/governance-update.example.json)) and run:
+
+```bash
+npx hardhat run --network <network> scripts/governance/update-economics.ts --config config/governance-update.json
+```
+
+Append `--execute` to broadcast transactions once the dry-run summary looks correct. The helper prints current vs. desired values, method names, and transaction hashes for audit-ready change control.
 
 ### Network timeouts
 
@@ -204,14 +214,14 @@ Record each address during deployment. The defaults below assume the 18‑decima
 | Module                                                                     | Owner‑only setters                                                                                                                                             |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [`AGIALPHAToken`](contracts/test/AGIALPHAToken.sol) _(local testing only)_ | `mint`, `burn`                                                                                                                                                 |
-| [`StakeManager`](contracts/StakeManager.sol)                            | `setMinStake`, `setSlashingPercentages`, `setTreasury`, `setMaxStakePerAddress`                                                                                |
-| [`JobRegistry`](contracts/JobRegistry.sol)                              | `setModules`, `setFeePool`, `setTaxPolicy`, `setAgentRootNode`, `setAgentMerkleRoot`,<br>`setTreasury`, `setIdentityRegistry`                                  |
-| [`ValidationModule`](contracts/ValidationModule.sol)                    | `setJobRegistry`, `setCommitWindow`, `setRevealWindow`, `setValidatorBounds`, `setApprovalThreshold`, `setIdentityRegistry`                                    |
-| [`IdentityRegistry`](contracts/IdentityRegistry.sol)                    | `setENS`, `setNameWrapper`, `setReputationEngine`, `setAgentRootNode`, `setClubRootNode`, `setAgentMerkleRoot`, `setValidatorMerkleRoot`, `setAgentProfileURI` |
-| [`DisputeModule`](contracts/modules/DisputeModule.sol)                  | `setDisputeFee`, `setTaxPolicy`, `setFeePool`                                                                                                                  |
-| [`ReputationEngine`](contracts/ReputationEngine.sol)                    | `setCaller`, `setWeights`, `blacklist`, `unblacklist`                                                                                                          |
-| [`CertificateNFT`](contracts/CertificateNFT.sol)                        | `setJobRegistry`, `setStakeManager`, `setBaseURI` _(one-time IPFS prefix)_                                                                                     |
-| [`FeePool`](contracts/FeePool.sol)                                      | `setStakeManager`, `setRewardRole`, `setBurnPct`, `setTreasury`                                                                                                |
+| [`StakeManager`](contracts/StakeManager.sol)                               | `setMinStake`, `setSlashingPercentages`, `setTreasury`, `setMaxStakePerAddress`                                                                                |
+| [`JobRegistry`](contracts/JobRegistry.sol)                                 | `setModules`, `setFeePool`, `setTaxPolicy`, `setAgentRootNode`, `setAgentMerkleRoot`,<br>`setTreasury`, `setIdentityRegistry`                                  |
+| [`ValidationModule`](contracts/ValidationModule.sol)                       | `setJobRegistry`, `setCommitWindow`, `setRevealWindow`, `setValidatorBounds`, `setApprovalThreshold`, `setIdentityRegistry`                                    |
+| [`IdentityRegistry`](contracts/IdentityRegistry.sol)                       | `setENS`, `setNameWrapper`, `setReputationEngine`, `setAgentRootNode`, `setClubRootNode`, `setAgentMerkleRoot`, `setValidatorMerkleRoot`, `setAgentProfileURI` |
+| [`DisputeModule`](contracts/modules/DisputeModule.sol)                     | `setDisputeFee`, `setTaxPolicy`, `setFeePool`                                                                                                                  |
+| [`ReputationEngine`](contracts/ReputationEngine.sol)                       | `setCaller`, `setWeights`, `blacklist`, `unblacklist`                                                                                                          |
+| [`CertificateNFT`](contracts/CertificateNFT.sol)                           | `setJobRegistry`, `setStakeManager`, `setBaseURI` _(one-time IPFS prefix)_                                                                                     |
+| [`FeePool`](contracts/FeePool.sol)                                         | `setStakeManager`, `setRewardRole`, `setBurnPct`, `setTreasury`                                                                                                |
 
 ### Etherscan steps
 
